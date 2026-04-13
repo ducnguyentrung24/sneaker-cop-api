@@ -14,7 +14,7 @@ const authenticate = (req, res, next) => {
         const decoded = jwt.verifyToken(token);
         req.user = decoded;
 
-        if (req.user.status === false) {
+        if (req.user.is_active === false) {
             return res.status(403).json({
                 success: false,
                 message: "Your account has been locked. Please contact support.",

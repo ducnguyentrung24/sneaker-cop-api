@@ -1,79 +1,259 @@
-# API SPEC
+# API SPEC – SNEAKER COP
 
-## System
+---
+
+# I. SYSTEM
+
+---
+
+## 1. Health Check
 
 ### GET /
 
+Description:
+Kiểm tra server hoạt động
+
 Response:
 {
-  "message": "Sneaker Cop API 🚀"
+"message": "Sneaker Cop API 🚀"
 }
 
-## Database
+---
 
-### Sequelize + User Model
+# II. AUTH MODULE
+
+---
+
+## 1. Register
+
+### POST /auth/register
 
 Description:
-
-- Using Sequelize ORM
-- User model defined in module
-- Database synced automatically
-
-## Auth
-
-### POST /api/auth/register
+Đăng ký tài khoản mới
 
 Request:
 {
-  "email": "string",
-  "password": "string",
-  "full_name": "string"
+"email": "string",
+"password": "string (>=6)",
+"full_name": "string"
 }
 
 Response:
 {
-  "message": "Register success",
-  "data": {
-    "id": number,
-    "email": "string",
-    "full_name": "string"
-  }
+"message": "Register success",
+"data": {
+"id": 1,
+"email": "[test@gmail.com](mailto:test@gmail.com)",
+"full_name": "Nguyen Duc"
+}
 }
 
-### POST /api/auth/login
+Errors:
+
+* Email already exists
+* Email không hợp lệ
+* Password phải ≥ 6 ký tự
+* Missing required fields
+
+---
+
+## 2. Login
+
+### POST /auth/login
+
+Description:
+Đăng nhập và trả về JWT token
 
 Request:
 {
-  "email": "string",
-  "password": "string"
+"email": "string",
+"password": "string"
 }
 
 Response:
 {
-  "message": "Login success",
-  "data": {
-    "user": {},
-    "token": "jwt"
-  }
-} 
+"message": "Login success",
+"data": {
+"user": {
+"id": 1,
+"email": "[test@gmail.com](mailto:test@gmail.com)",
+"full_name": "Nguyen Duc"
+},
+"token": "jwt_token"
+}
+}
 
-## Validation (Joi)
+Errors:
 
-### Auth
+* Invalid credentials
+* Email không hợp lệ
 
-- Email phải đúng format
-- Password ≥ 6 ký tự
-- Full name bắt buộc
-- Tự động loại bỏ field không hợp lệ
+---
 
-## Auth Middleware
+# III. USER MODULE
 
-### Protected Routes
+---
 
-- Require JWT token in header:
-  Authorization: Bearer `<token>`
+## 1. Get Profile
 
-### Role-based Access
+### GET /users/profile
 
-- ADMIN routes require role = ADMIN
-- CUSTOMER routes require login
+Description:
+Lấy thông tin user hiện tại
+
+Headers:
+Authorization: Bearer
+
+Response:
+{
+"data": {
+"id": 1,
+"email": "[test@gmail.com](mailto:test@gmail.com)",
+"full_name": "Nguyen Duc",
+"phone": "0123456789",
+"role": "CUSTOMER",
+"isActive": true,
+"created_at": "2026-01-01T00:00:00Z",
+"updated_at": "2026-01-01T00:00:00Z"
+}
+}
+
+Errors:
+
+* Unauthorized
+* Invalid or expired token
+
+---
+
+## 2. Update Profile
+
+### PUT /users/profile
+
+Description:
+Cập nhật thông tin user
+
+Headers:
+Authorization: Bearer
+
+Request:
+{
+"full_name": "Nguyen Van A",
+"phone": "0123456789"
+}
+
+Response:
+{
+"message": "Profile updated",
+"data": {
+"id": 1,
+"email": "[test@gmail.com](mailto:test@gmail.com)",
+"full_name": "Nguyen Van A",
+"phone": "0123456789"
+}
+}
+
+Errors:
+
+* Unauthorized
+* Full name là bắt buộc
+
+---
+
+## 3. Change Password
+
+### PUT /users/change-password
+
+Description:
+Đổi mật khẩu
+
+Headers:
+Authorization: Bearer
+
+Request:
+{
+"old_password": "123456",
+"new_password": "abcdef"
+}
+
+Response:
+{
+"message": "Password changed successfully"
+}
+
+Errors:
+
+* Old password is incorrect
+* Password mới phải ≥ 6 ký tự
+* Unauthorized
+
+---
+
+# IV. VALIDATION RULES
+
+---
+
+## 1. Auth Validation
+
+* Email phải đúng format
+* Password ≥ 6 ký tự
+* Full name là bắt buộc
+
+---
+
+## 2. User Validation
+
+* Full name là bắt buộc
+* Password mới ≥ 6 ký tự
+
+---
+
+# V. AUTHENTICATION
+
+---
+
+## 1. JWT
+
+* Sử dụng JSON Web Token
+* Token được trả về khi login
+
+---
+
+## 2. Header Format
+
+Authorization: Bearer
+
+---
+
+# VI. ROLES
+
+---
+
+## 1. USER ROLES
+
+* ADMIN
+* CUSTOMER
+
+---
+
+# VII. DATABASE (CURRENT)
+
+---
+
+## 1. Table: users
+
+Fields:
+
+* id (INTEGER, PK)
+* email (STRING, UNIQUE)
+* password (STRING)
+* full_name (STRING)
+* phone (STRING)
+* role (ENUM: ADMIN, CUSTOMER)
+* is_active (BOOLEAN)
+* created_at (TIMESTAMP)
+* updated_at (TIMESTAMP)
+
+Description:
+User table được quản lý bởi Sequelize (model-first)
+
+---
