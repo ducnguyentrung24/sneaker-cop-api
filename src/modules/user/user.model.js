@@ -18,6 +18,10 @@ const User = sequelize.define("User", {
         unique: true,
         validate: { isEmail: true },
     },
+    phone: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
     password: {
         type: DataTypes.STRING,
         allowNull: false,
@@ -27,7 +31,7 @@ const User = sequelize.define("User", {
         values: Object.values(ROLES),
         defaultValue: ROLES.CUSTOMER,
     },
-    status: {
+    is_active: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
     },
