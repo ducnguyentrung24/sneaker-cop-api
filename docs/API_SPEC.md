@@ -19,7 +19,6 @@ Description:
 - User model defined in module
 - Database synced automatically
 
-
 ## Auth
 
 ### POST /api/auth/register
@@ -56,4 +55,13 @@ Response:
     "user": {},
     "token": "jwt"
   }
-}
+} 
+
+## Validation (Joi)
+
+### Auth
+
+- Email phải đúng format
+- Password ≥ 6 ký tự
+- Full name bắt buộc
+- Tự động loại bỏ field không hợp lệ
