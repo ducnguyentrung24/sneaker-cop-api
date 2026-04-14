@@ -16,11 +16,13 @@ const authRoutes = require('./modules/auth/auth.route');
 const userRoutes = require('./modules/user/user.route');
 const brandRoutes = require('./modules/brand/brand.route');
 const categoryRoutes = require('./modules/category/category.route');
+const productRoutes = require('./modules/product/product.route');
 
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
 app.use('/brands', brandRoutes);
 app.use('/categories', categoryRoutes);
+app.use('/products', productRoutes);
 
 // Test
 app.get('/', (req, res) => {
