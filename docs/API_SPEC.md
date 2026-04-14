@@ -257,3 +257,25 @@ Description:
 User table được quản lý bởi Sequelize (model-first)
 
 ---
+
+# VIII. BRAND MODULE
+
+## 1. Create Brand
+
+POST /api/brands
+
+## 2. Get Brands (Pagination)
+
+GET /api/brands?page=1&limit=10
+
+## 3. Get Brand By Id
+
+GET /api/brands/:id
+
+## 4. Update Brand
+
+PUT /api/brands/:id
+
+## 5. Delete Brand
+
+DELETE /api/brands/:id

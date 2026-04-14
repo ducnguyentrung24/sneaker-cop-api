@@ -14,9 +14,11 @@ app.use(morgan('dev'));
 // Routes
 const authRoutes = require('./modules/auth/auth.route');
 const userRoutes = require('./modules/user/user.route');
+const brandRoutes = require('./modules/brand/brand.route');
 
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
+app.use('/brands', brandRoutes);
 
 // Test
 app.get('/', (req, res) => {
