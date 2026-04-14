@@ -42,9 +42,7 @@ const createBrand = async (data) => {
         throw new Error("Brand already exists");
     }
 
-    return await Brand.create({ 
-        name 
-    });
+    return await Brand.create({ name });
 };
 
 const updateBrand = async (id, data) => {

@@ -258,24 +258,309 @@ User table được quản lý bởi Sequelize (model-first)
 
 ---
 
+
 # VIII. BRAND MODULE
+
+---
 
 ## 1. Create Brand
 
-POST /api/brands
+### POST /api/brands
+
+Description:
+Tạo brand mới (ADMIN)
+
+Headers:
+Authorization: Bearer
+
+Request:
+{
+"name": "Nike"
+}
+
+Response:
+{
+"message": "Brand created",
+"data": {
+"id": 1,
+"name": "Nike",
+"created_at": "2026-01-01T00:00:00Z",
+"updated_at": "2026-01-01T00:00:00Z"
+}
+}
+
+Errors:
+
+* Unauthorized
+* Forbidden
+* Brand already exists
+* Name là bắt buộc
+
+---
 
 ## 2. Get Brands (Pagination)
 
-GET /api/brands?page=1&limit=10
+### GET /api/brands?page=1&limit=10
+
+Description:
+Lấy danh sách brand có phân trang
+
+Request:
+Query params:
+
+* page (number, default = 1)
+* limit (number, default = 10)
+
+Response:
+{
+"data": [
+{
+"id": 1,
+"name": "Nike",
+"created_at": "2026-01-01T00:00:00Z",
+"updated_at": "2026-01-01T00:00:00Z"
+}
+],
+"pagination": {
+"total": 100,
+"page": 1,
+"limit": 10,
+"totalPages": 10
+}
+}
+
+---
 
 ## 3. Get Brand By Id
 
-GET /api/brands/:id
+### GET /api/brands/:id
+
+Description:
+Lấy chi tiết brand theo id
+
+Response:
+{
+"data": {
+"id": 1,
+"name": "Nike",
+"created_at": "2026-01-01T00:00:00Z",
+"updated_at": "2026-01-01T00:00:00Z"
+}
+}
+
+Errors:
+
+* Brand not found
+
+---
 
 ## 4. Update Brand
 
-PUT /api/brands/:id
+### PUT /api/brands/:id
+
+Description:
+Cập nhật brand (ADMIN)
+
+Headers:
+Authorization: Bearer
+
+Request:
+{
+"name": "Adidas"
+}
+
+Response:
+{
+"message": "Brand updated",
+"data": {
+"id": 1,
+"name": "Adidas",
+"created_at": "2026-01-01T00:00:00Z",
+"updated_at": "2026-01-02T00:00:00Z"
+}
+}
+
+Errors:
+
+* Unauthorized
+* Forbidden
+* Brand not found
+* Brand name already exists
+
+---
 
 ## 5. Delete Brand
 
-DELETE /api/brands/:id
+### DELETE /api/brands/:id
+
+Description:
+Xóa brand (ADMIN)
+
+Headers:
+Authorization: Bearer
+
+Response:
+{
+"message": "Brand deleted"
+}
+
+Errors:
+
+* Unauthorized
+* Forbidden
+* Brand not found
+
+---
+
+# IX. CATEGORY MODULE
+
+---
+
+## 1. Create Category
+
+### POST /api/categories
+
+Description:
+Tạo category mới (ADMIN)
+
+Headers:
+Authorization: Bearer
+
+Request:
+{
+"name": "Running"
+}
+
+Response:
+{
+"message": "Category created",
+"data": {
+"id": 1,
+"name": "Running",
+"created_at": "2026-01-01T00:00:00Z",
+"updated_at": "2026-01-01T00:00:00Z"
+}
+}
+
+Errors:
+
+* Unauthorized
+* Forbidden
+* Category already exists
+* Name là bắt buộc
+
+---
+
+## 2. Get Categories (Pagination)
+
+### GET /api/categories?page=1&limit=10
+
+Description:
+Lấy danh sách category có phân trang
+
+Request:
+Query params:
+
+* page (number, default = 1)
+* limit (number, default = 10)
+
+Response:
+{
+"data": [
+{
+"id": 1,
+"name": "Running",
+"created_at": "2026-01-01T00:00:00Z",
+"updated_at": "2026-01-01T00:00:00Z"
+}
+],
+"pagination": {
+"total": 100,
+"page": 1,
+"limit": 10,
+"totalPages": 10
+}
+}
+
+---
+
+## 3. Get Category By Id
+
+### GET /api/categories/:id
+
+Description:
+Lấy chi tiết category theo id
+
+Response:
+{
+"data": {
+"id": 1,
+"name": "Running",
+"created_at": "2026-01-01T00:00:00Z",
+"updated_at": "2026-01-01T00:00:00Z"
+}
+}
+
+Errors:
+
+* Category not found
+
+---
+
+## 4. Update Category
+
+### PUT /api/categories/:id
+
+Description:
+Cập nhật category (ADMIN)
+
+Headers:
+Authorization: Bearer
+
+Request:
+{
+"name": "Basketball"
+}
+
+Response:
+{
+"message": "Category updated",
+"data": {
+"id": 1,
+"name": "Basketball",
+"created_at": "2026-01-01T00:00:00Z",
+"updated_at": "2026-01-02T00:00:00Z"
+}
+}
+
+Errors:
+
+* Unauthorized
+* Forbidden
+* Category not found
+* Category name already exists
+
+---
+
+## 5. Delete Category
+
+### DELETE /api/categories/:id
+
+Description:
+Xóa category (ADMIN)
+
+Headers:
+Authorization: Bearer
+
+Response:
+{
+"message": "Category deleted"
+}
+
+Errors:
+
+* Unauthorized
+* Forbidden
+* Category not found
+
+---

@@ -5,6 +5,7 @@ const sequelize = require("./config/database");
 // Load model
 require("./modules/user/user.model");
 require("./modules/brand/brand.model");
+require("./modules/category/category.model");
 
 const PORT = process.env.PORT || 8000;
 

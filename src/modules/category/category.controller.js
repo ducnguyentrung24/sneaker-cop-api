@@ -1,12 +1,12 @@
-const brandService = require("./brand.service");
+const categoryService = require('./category.service');
 
-const getBrands = async (req, res) => {
+const getCategories = async (req, res) => {
     try {
-        const brands = await brandService.getBrands(req.query);
+        const categories = await categoryService.getCategories(req.query);
 
         res.status(200).json({
             success: true,
-            data: brands,
+            data: categories,
         });
     } catch (error) {
         res.status(400).json({
@@ -16,13 +16,13 @@ const getBrands = async (req, res) => {
     }
 };
 
-const getBrandById = async (req, res) => {
+const getCategoryById = async (req, res) => {
     try {
-        const brand = await brandService.getBrandById(req.params.id);
+        const category = await categoryService.getCategoryById(req.params.id);
 
         res.status(200).json({
             success: true,
-            data: brand,
+            data: category,
         });
     } catch (error) {
         res.status(400).json({
@@ -32,14 +32,14 @@ const getBrandById = async (req, res) => {
     }
 };
 
-const createBrand = async (req, res) => {
+const createCategory = async (req, res) => {
     try {
-        const brand = await brandService.createBrand(req.body);
+        const category = await categoryService.createCategory(req.body);
 
         res.status(201).json({
             success: true,
-            message: "Brand created successfully",
-            data: brand,
+            message: "Category created successfully",
+            data: category,
         });
     } catch (error) {
         res.status(400).json({
@@ -49,17 +49,17 @@ const createBrand = async (req, res) => {
     }
 };
 
-const updateBrand = async (req, res) => {
+const updateCategory = async (req, res) => {
     try {
-        const brand = await brandService.updateBrand(
+        const category = await categoryService.updateCategory(
             req.params.id,
             req.body
         );
 
         res.status(200).json({
             success: true,
-            message: "Brand updated successfully",
-            data: brand,
+            message: "Category updated successfully",
+            data: category,
         });
     } catch (error) {
         res.status(400).json({
@@ -69,9 +69,9 @@ const updateBrand = async (req, res) => {
     }
 };
 
-const deleteBrand = async (req, res) => {
+const deleteCategory = async (req, res) => {
     try {
-        const result = await brandService.deleteBrand(req.params.id);
+        const result = await categoryService.deleteCategory(req.params.id);
 
         res.json({
             success: true,
@@ -86,9 +86,9 @@ const deleteBrand = async (req, res) => {
 };
 
 module.exports = {
-    getBrands,
-    getBrandById,
-    createBrand,
-    updateBrand,
-    deleteBrand,
+    getCategories,
+    getCategoryById,
+    createCategory,
+    updateCategory,
+    deleteCategory,
 };
