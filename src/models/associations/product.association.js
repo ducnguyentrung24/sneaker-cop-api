@@ -1,6 +1,6 @@
 const Product = require('../../modules/product/product.model');
 const ProductImage = require('../../modules/product/productImage.model');
-const ProductVariant = require('../../modules/product_variant/productVariant.model');
+const ProductVariant = require('../../modules/product/productVariant.model');
 
 const initProductAssociations = () => {
 

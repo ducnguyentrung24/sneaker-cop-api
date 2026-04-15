@@ -6,7 +6,7 @@ require('../modules/brand/brand.model');
 require('../modules/category/category.model');
 require('../modules/product/product.model');
 require('../modules/product/productImage.model');
-require('../modules/product_variant/productVariant.model');
+require('../modules/product/productVariant.model');
 
 // load associations
 const initProductAssociations = require('./associations/product.association');

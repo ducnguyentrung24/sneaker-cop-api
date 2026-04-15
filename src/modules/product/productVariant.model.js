@@ -28,9 +28,13 @@ const ProductVariant = sequelize.define('ProductVariant', {
         allowNull: false,
     },
     image_url: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
         allowNull: false,
     },
+    sold: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+    }
 }, {
     tableName: 'product_variants',
     timestamps: true,

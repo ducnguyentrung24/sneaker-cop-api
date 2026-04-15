@@ -1,89 +1,185 @@
-const sequelize = require('../../config/database');
+const { Op } = require("sequelize");
+const { sequelize } = require("../../models");
 
-const Product = require('./product.model');
-const ProductImage = require('./productImage.model');
-const ProductVariant = require('../product_variant/productVariant.model');
+const Product = require("./product.model");
+const ProductImage = require("./productImage.model");
+const ProductVariant = require("./productVariant.model");
 
-const createProudct = async(data) => {
-    const transaction = await sequelize.transaction();
+const getProducts = async (query) => {
+    const {
+        page = 1,
+        limit = 10,
+        search = "",
+        brand_id,
+        category_id
+    } = query;
 
-    try {
+    const pageNum = Number(page) || 1;
+    const limitNum = Number(limit) || 10;
+    const offset = (pageNum - 1) * limitNum;
+
+    // Where conditions
+    const where = {};
+
+    if (search?.trim()) {
+        where.name = {
+            [Op.iLike]: `%${search.trim()}%`
+        };
+    }
+
+    if (brand_id) where.brand_id = brand_id;
+    if (category_id) where.category_id = category_id;
+
+    const { rows, count } = await Product.findAndCountAll({
+        where,
+        limit: limitNum,
+        offset,
+        order: [['created_at', 'DESC']],
+        attributes: [
+            "id",
+            "name",
+            "base_price",
+            "discount_percent",
+            "thumbnail",
+            "sold",
+        ]
+    });
+
+    const totalPages = Math.ceil(count / limitNum);
+
+    return {
+        data: rows,
+        pagination: {
+            total: count,
+            page: pageNum,
+            limit: limitNum,
+            total_pages: totalPages,
+            hasNext: pageNum < totalPages,
+            hasPrev: pageNum > 1
+        }
+    };
+};
+
+const getProductById = async (productId) => {
+    const product = await Product.findByPk(productId, {
+        include: [
+            { association: 'images' },
+            { association: 'variants'}
+        ]
+    });
+    if (!product) {
+        throw new Error("Product not found");
+    }
+
+    return product;
+};
+
+const createProduct = async (data) => {
+    return await sequelize.transaction(async (transaction) => {
         const { images, variants, ...productData } = data;
 
-        // 1 Product
-        const product = await Product.create(
-            productData,
-            { transaction }
-        );
+        // Check images
+        if (images && images.length > 4) {
+            throw new Error("Maximum 4 images allowed");
+        }
 
-        // 2 Images
+        // Check for duplicate name
+        if (productData.name) {
+            const existingProduct = await Product.findOne({
+                where: {
+                    name: productData.name,
+                }
+            });
+
+            if (existingProduct) {
+                throw new Error("Product name already exists");
+            }
+        }
+
+        // 1. create product
+        const product = await Product.create(productData, { transaction });
+
+        // 2. create images
         if (images?.length) {
             const imageData = images.map(url => ({
                 product_id: product.id,
                 image_url: url,
             }));
 
-            await ProductImage.bulkCreate(
-                imageData,
-                { transaction }
-            );
+            await ProductImage.bulkCreate(imageData, { transaction });
         }
 
-        // 3 Variants
-        if (variants?.length) {
-            const seen = new Set();
-
-            for (const v of variants) {
-                const key = `${v.color}-${v.size}`;
-
-                if (seen.has(key)) {
-                    throw new Error(`Duplicate variant with color ${v.color} and size ${v.size}`);
-                }
-
-                seen.add(key);
+        // 3. create variants
+        if (variants) {
+            if (!Array.isArray(variants)) {
+                throw new Error("Variants must be an array");
             }
 
-            const variantData = variants.map(v => ({
-                product_id: product.id,
-                color: v.color,
-                size: v.size,
-                stock: v.stock,
-                price: v.price,
-                image_url: v.image_url,
-            }));
+            if (variants.length) {
+            // Check for duplicate variants
+                const seen = new Set();
 
-            await ProductVariant.bulkCreate(
-                variantData,
-                { transaction }
-            );
+                for (const variant of variants) {
+                    const key = `${variant.color}-${variant.size}`;
+
+                    if (seen.has(key)) {
+                        throw new Error(`Duplicate variant: ${key}`);
+                    }
+
+                    seen.add(key);
+                }
+
+                const variantData = variants.map(variant => ({
+                    product_id: product.id,
+                    color: variant.color,
+                    size: variant.size,
+                    stock: variant.stock,
+                    price: variant.price,
+                    image_url: variant.image_url,
+                }));
+
+                await ProductVariant.bulkCreate(variantData, { transaction });
+            }
         }
 
-        await transaction.commit();
-
         return product;
-
-    } catch (error) {
-        await transaction.rollback();
-        throw error;
-    }
+    });
 };
 
 const updateProduct = async (productId, data) => {
-    const transaction = await sequelize.transaction();
-
-    try {
-        const { images, variants, ...productData } = data;
-
-        const product = await Product.findByPk(productId);
+    return await sequelize.transaction(async (transaction) => {
+        const product = await Product.findByPk(productId, { transaction });
         if (!product) {
             throw new Error("Product not found");
         }
 
-        // 1. Update product
+        const { images, variants, ...productData } = data;
+
+        // Check images
+        if (images && images.length > 4) {
+            throw new Error("Maximum 4 images allowed");
+        }
+
+        // Check for duplicate name
+        if (productData.name) {
+            const existingProduct = await Product.findOne({
+                where: {
+                    name: productData.name,
+                    id: { [Op.ne]: productId }
+                }
+            });
+
+            if (existingProduct) {
+                throw new Error("Product name already exists");
+            }
+        }
+
+        // 1. update product
         await product.update(productData, { transaction });
 
-        // 2. Replace images
+        // 2. update images
         if (images) {
+            // Delete old images
             await ProductImage.destroy({
                 where: { product_id: productId },
                 transaction,
@@ -94,55 +190,48 @@ const updateProduct = async (productId, data) => {
                 image_url: url,
             }));
 
-            await ProductImage.bulkCreate(
-                imageData,
-                { transaction }
-            );
+            await ProductImage.bulkCreate(imageData, { transaction });
         }
 
-        // 3. Replace variants
+        // 3. update variants
         if (variants) {
+            if (!Array.isArray(variants)) {
+                throw new Error("Variants must be an array");
+            }
+
+            // Check for duplicate variants
             const seen = new Set();
 
-            for (const v of variants) {
-                const key = `${v.color}-${v.size}`;
+            for (const variant of variants) {
+                const key = `${variant.color}-${variant.size}`;
 
                 if (seen.has(key)) {
-                    throw new Error(`Duplicate variant with color ${v.color} and size ${v.size}`);
+                    throw new Error(`Duplicate variant: color=${variant.color}, size=${variant.size}`);
                 }
 
                 seen.add(key);
             }
 
+            // Delete old variants
             await ProductVariant.destroy({
-                where: {
-                    product_id: productId,
-                    transaction,
-                }
+                where: { product_id: productId },
+                transaction,
             });
 
-            const variantData = variants.map(v => ({
+            const variantData = variants.map(variant => ({
                 product_id: productId,
-                color: v.color,
-                size: v.size,
-                stock: v.stock,
-                price: v.price,
-                image_url: v.image_url,
+                color: variant.color,
+                size: variant.size,
+                stock: variant.stock,
+                price: variant.price,
+                image_url: variant.image_url,
             }));
 
-            await ProductVariant.bulkCreate(
-                variantData,
-                { transaction }
-            );
+            await ProductVariant.bulkCreate(variantData, { transaction });
         }
 
-        await transaction.commit();
-
         return product;
-    } catch(error) {
-        await transaction.rollback();
-        throw error;
-    }
+    });
 };
 
 const deleteProduct = async (productId) => {
@@ -157,5 +246,9 @@ const deleteProduct = async (productId) => {
 };
 
 module.exports = {
-    createProudct,
+    getProducts,
+    getProductById,
+    createProduct,
+    updateProduct,
+    deleteProduct,
 };

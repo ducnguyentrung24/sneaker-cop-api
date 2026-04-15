@@ -3,20 +3,20 @@ const { col } = require("sequelize");
 
 const productSchema = Joi.object({
     name: Joi.string().required().messages({
-        "any,required": "Tên sản phẩm là bắt buộc",
+        "any.required": "Tên sản phẩm là bắt buộc",
     }),
     brand_id: Joi.required().messages({
-        "any,required": "Thương hiệu là bắt buộc",
+        "any.required": "Thương hiệu là bắt buộc",
     }),
     category_id: Joi.required().messages({
-        "any,required": "Danh mục là bắt buộc",
+        "any.required": "Danh mục là bắt buộc",
     }),
     base_price: Joi.number().min(0).required().messages({
         "number.base": "Giá phải là một số",
         "number.min": "Giá phải lớn hơn hoặc bằng 0",
-        "any,required": "Giá là bắt buộc",
+        "any.required": "Giá là bắt buộc",
     }),
-    discount_percent: Joi.number().min(0).max(100).messages({
+    discount_percent: Joi.number().min(0).max(100).default(0).messages({
         "number.base": "Phần trăm giảm giá phải là một số",
         "number.min": "Phần trăm giảm giá phải lớn hơn hoặc bằng 0",
         "number.max": "Phần trăm giảm giá phải nhỏ hơn hoặc bằng 100",
@@ -25,10 +25,12 @@ const productSchema = Joi.object({
         "string.base": "Mô tả phải là một chuỗi",
     }),
     thumbnail: Joi.string().required().messages({
-        "any,required": "Ảnh đại diện là bắt buộc",
+        "any.required": "Ảnh đại diện là bắt buộc",
     }),
 
-    images: Joi.array().items(Joi.string()),
+    images: Joi.array().items(Joi.string()).max(4).optional().messages({
+        "array.max": "Chỉ được tối đa 4 ảnh phụ",
+    }),
 
     variants: Joi.array().items(
         Joi.object({

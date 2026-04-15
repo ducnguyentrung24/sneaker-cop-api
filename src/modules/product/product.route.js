@@ -9,6 +9,11 @@ const {
 } = require("../../middleware/auth.middleware");
 const { validateProduct } = require("./product.validate");
 
+// PUBLIC
+router.get("/", productController.getProducts);
+
+router.get("/:id", productController.getProductById);
+
 
 // ADMIN
 router.post("/",
@@ -16,6 +21,19 @@ router.post("/",
     authorizeRoles(ROLES.ADMIN),
     validateProduct,
     productController.createProduct
+);
+
+router.put("/:id",
+    authenticate,
+    authorizeRoles(ROLES.ADMIN),
+    validateProduct,
+    productController.updateProduct
+);
+
+router.delete("/:id",
+    authenticate,
+    authorizeRoles(ROLES.ADMIN),
+    productController.deleteProduct
 );
 
 module.exports = router;

@@ -4,7 +4,7 @@ const getProfile = async (req, res) => {
     try {
         const user = await userService.getProfile(req.user.id);
 
-        res.json({
+        res.status(200).json({
             success: true,
             data: user,
         });
@@ -23,7 +23,7 @@ const updateProfile = async (req, res) => {
             req.body
         );
 
-        res.json({
+        res.status(200).json({
             success: true,
             message: 'Profile updated successfully',
             data: user,
@@ -43,7 +43,7 @@ const changePassword = async (req, res) => {
             req.body
         );
 
-        res.json({
+        res.status(200).json({
             success: true,
             message: result,
         });

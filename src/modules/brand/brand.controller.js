@@ -73,7 +73,7 @@ const deleteBrand = async (req, res) => {
     try {
         const result = await brandService.deleteBrand(req.params.id);
 
-        res.json({
+        res.status(200).json({
             success: true,
             message: result,
         });

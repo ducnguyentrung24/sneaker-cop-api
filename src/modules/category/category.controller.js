@@ -73,7 +73,7 @@ const deleteCategory = async (req, res) => {
     try {
         const result = await categoryService.deleteCategory(req.params.id);
 
-        res.json({
+        res.status(200).json({
             success: true,
             message: result,
         });
