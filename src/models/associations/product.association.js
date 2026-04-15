@@ -13,6 +13,7 @@ const initProductAssociations = () => {
 
     ProductImage.belongsTo(Product, {
         foreignKey: 'product_id',
+        as: 'product',
         onDelete: 'CASCADE',
     });
 
@@ -25,6 +26,7 @@ const initProductAssociations = () => {
 
     ProductVariant.belongsTo(Product, {
         foreignKey: 'product_id',
+        as: 'product',
         onDelete: 'CASCADE',
     });
 };

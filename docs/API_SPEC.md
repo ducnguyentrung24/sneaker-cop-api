@@ -258,7 +258,6 @@ User table được quản lý bởi Sequelize (model-first)
 
 ---
 
-
 # VIII. BRAND MODULE
 
 ---
@@ -564,3 +563,301 @@ Errors:
 * Category not found
 
 ---
+
+# X. PRODUCT MODULE
+
+---
+
+## 1. Get Products (Pagination + Search)
+
+### GET /api/products?page=1&limit=10&search=&brand_id=&category_id=
+
+Description:
+Lấy danh sách sản phẩm có phân trang, tìm kiếm và filter
+
+Query params:
+
+- page (number, default = 1)
+- limit (number, default = 10)
+- search (string)
+- brand_id (number)
+- category_id (number)
+
+Response:
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "Nike Air Force 1",
+      "base_price": "2000000",
+      "discount_percent": 10,
+      "thumbnail": "https://...",
+      "sold": 5
+    }
+  ],
+  "pagination": {
+    "total": 20,
+    "page": 1,
+    "limit": 10,
+    "total_pages": 2,
+    "hasNext": true,
+    "hasPrev": false
+  }
+}
+
+---
+
+## 2. Get Product Detail
+
+### GET /api/products/:id
+
+Description:
+Lấy chi tiết sản phẩm kèm images và variants
+
+Response:
+{
+  "id": 1,
+  "name": "Nike Air Force 1",
+  "brand_id": 1,
+  "category_id": 1,
+  "base_price": "2000000",
+  "discount_percent": 10,
+  "description": "Classic sneaker",
+  "thumbnail": "https://...",
+  "sold": 5,
+  "images": [
+    {
+      "id": 1,
+      "image_url": "img1.jpg"
+    }
+  ],
+  "variants": [
+    {
+      "id": 1,
+      "color": "white",
+      "size": "40",
+      "stock": 10,
+      "price": "2000000",
+      "image_url": "variant.jpg",
+      "sold": 2
+    }
+  ]
+}
+
+Errors:
+
+- Product not found
+
+---
+
+## 3. Create Product
+
+### POST /api/products
+
+Description:
+Tạo sản phẩm mới (ADMIN)
+
+Request:
+{
+  "name": "Nike Air Force 1",
+  "brand_id": 1,
+  "category_id": 1,
+  "base_price": 2000000,
+  "discount_percent": 10,
+  "description": "Classic sneaker",
+  "thumbnail": "https://...",
+
+  "images": [
+    "img1.jpg",
+    "img2.jpg"
+  ],
+
+  "variants": [
+    {
+      "color": "white",
+      "size": "40",
+      "stock": 10,
+      "price": 2000000,
+      "image_url": "variant.jpg"
+    }
+  ]
+}
+
+Rules:
+
+- Tối đa 4 images
+- Tên sản phẩm không được trùng
+- Variant không được trùng (color + size)
+
+Response:
+{
+  "id": 1,
+  "name": "Nike Air Force 1",
+  "created_at": "...",
+  "updated_at": "..."
+}
+
+Errors:
+
+- Product name already exists
+- Maximum 4 images allowed
+- Duplicate variant
+
+---
+
+## 4. Update Product
+
+### PUT /api/products/:id
+
+Description:
+Cập nhật sản phẩm (replace images + variants)
+
+Request:
+{
+  "name": "Nike Air Force 1 Updated",
+  "brand_id": 1,
+  "category_id": 1,
+  "base_price": 2100000,
+  "discount_percent": 5,
+  "description": "Updated",
+  "thumbnail": "https://...",
+
+  "images": [
+    "img1.jpg",
+    "img2.jpg"
+  ],
+
+  "variants": [
+    {
+      "color": "white",
+      "size": "40",
+      "stock": 8,
+      "price": 2100000,
+      "image_url": "variant.jpg"
+    }
+  ]
+}
+
+Response:
+{
+  "id": 1,
+  "name": "Nike Air Force 1 Updated",
+  "updated_at": "..."
+}
+
+Errors:
+
+- Product not found
+- Product name already exists
+- Maximum 4 images allowed
+- Duplicate variant
+
+---
+
+## 5. Delete Product
+
+### DELETE /api/products/:id
+
+Description:
+Xóa sản phẩm
+
+Response:
+{
+  "message": "Product deleted successfully"
+}
+
+Errors:
+
+- Product not found
+
+
+# XI. CART MODULE
+
+---
+
+## 1. Get Cart
+
+### GET /api/cart
+
+Description:
+Lấy danh sách sản phẩm trong giỏ hàng (giá realtime + discount)
+
+Headers:
+Authorization: Bearer
+
+Response:
+{
+  "items": [
+    {
+      "id": 1,
+      "quantity": 2,
+      "price": 1800000,
+      "original_price": 2000000,
+      "total": 3600000,
+      "product": {
+        "id": 1,
+        "name": "Nike Air Force 1",
+        "thumbnail": "https://...",
+        "discount_percent": 10
+      },
+      "variant": {
+        "id": 1,
+        "color": "white",
+        "size": "42",
+        "image_url": "https://..."
+      }
+    }
+  ],
+  "total_price": 3600000
+}
+
+Rules:
+
+- Giá được tính realtime từ variant.price
+- Áp dụng discount từ product.discount_percent
+- Không lưu price trong database
+
+Errors:
+
+- Unauthorized
+
+---
+
+## 2. Add To Cart
+
+### POST /api/cart
+
+Description:
+Thêm sản phẩm vào giỏ hàng hoặc tăng số lượng nếu đã tồn tại
+
+Headers:
+Authorization: Bearer
+
+Request:
+{
+  "variant_id": 1,
+  "quantity": 2
+}
+
+Response:
+{
+  "message": "Added to cart successfully",
+  "data": {
+    "id": 1,
+    "cart_id": 1,
+    "product_variant_id": 1,
+    "quantity": 2
+  }
+}
+
+Rules:
+
+- Nếu item đã tồn tại → cộng quantity
+- Không tạo duplicate item
+- Quantity không được vượt stock
+
+Errors:
+
+- Product variant not found
+- Quantity exceeds available stock
+- variant_id and quantity are required
