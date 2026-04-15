@@ -861,3 +861,69 @@ Errors:
 - Product variant not found
 - Quantity exceeds available stock
 - variant_id and quantity are required
+
+
+## 3. Update Cart Item Quantity
+
+### PUT /api/cart/:id
+
+Description:
+Cập nhật số lượng sản phẩm trong giỏ hàng
+
+Headers:
+Authorization: Bearer
+
+Request:
+{
+  "quantity": 3
+}
+
+Response:
+{
+  "success": true,
+  "message": "Cart item quantity updated successfully",
+  "data": {
+    "id": 1,
+    "quantity": 3
+  }
+}
+
+Rules:
+
+- Quantity phải ≥ 1
+- Không được vượt stock
+- Chỉ được update item của chính user
+
+Errors:
+
+- Cart item not found
+- Quantity must be at least 1
+- Quantity exceeds available stock
+- Unauthorized
+
+---
+
+## 4. Delete Cart Item
+
+### DELETE /api/cart/:id
+
+Description:
+Xóa sản phẩm khỏi giỏ hàng
+
+Headers:
+Authorization: Bearer
+
+Response:
+{
+  "success": true,
+  "message": "Item removed from cart"
+}
+
+Rules:
+
+- Chỉ được xóa item của chính user
+
+Errors:
+
+- Cart item not found
+- Unauthorized

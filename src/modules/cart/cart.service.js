@@ -4,6 +4,7 @@ const Cart = require("./cart.model");
 const CartItem = require("./cartItem.model");
 const ProductVariant = require("../product/productVariant.model");
 const Product = require("../product/product.model");
+const User = require("../user/user.model");
 
 const getCart = async (userId) => {
     // 1. Get cart + join full
@@ -148,7 +149,69 @@ const addToCart = async (userId, data) => {
     });
 };
 
+const updateQuantity = async (userId, cartItemId, data) => {
+    const { quantity } = data;
+
+    if (!quantity || quantity < 1) {
+        throw new Error("Quantity must be at least 1");
+    }
+
+    const cartItem = await CartItem.findByPk(cartItemId, {
+        include: [
+            {
+                model: Cart
+            },
+            {
+                model: ProductVariant,
+                as: 'variant',
+            }
+        ]
+    });
+
+    if (!cartItem) {
+        throw new Error("Cart item not found");
+    }
+
+    if (cartItem.Cart.user_id !== userId) {
+        throw new Error("Unauthorized");
+    }
+
+    // Check stock
+    if (quantity > cartItem.variant.stock) {
+        throw new Error("Quantity exceeds available stock");
+    }
+
+    // Update quantity
+    await cartItem.update({ quantity });
+
+    return cartItem;
+};
+
+const deleteCartItem = async (userId, cartItemId) => {
+    const cartItem = await CartItem.findByPk(cartItemId, {
+        include: [
+            {
+                model: Cart
+            }
+        ]
+    });
+
+    if (!cartItem) {
+        throw new Error("Cart item not found");
+    }
+
+    if (cartItem.Cart.user_id !== userId) {
+        throw new Error("Unauthorized");
+    }
+
+    await cartItem.destroy();
+
+    return { message: "Cart item deleted successfully" };
+};
+
 module.exports = {
     getCart,
     addToCart,
+    updateQuantity,
+    deleteCartItem
 };

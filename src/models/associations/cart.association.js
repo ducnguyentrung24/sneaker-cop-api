@@ -13,6 +13,7 @@ const initCartAssociations = () => {
 
     Cart.belongsTo(User, {
         foreignKey: 'user_id',
+        as: 'user',
         onDelete: 'CASCADE',
     });
 
