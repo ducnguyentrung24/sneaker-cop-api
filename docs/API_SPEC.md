@@ -770,7 +770,6 @@ Errors:
 
 - Product not found
 
-
 # XI. CART MODULE
 
 ---
@@ -862,7 +861,6 @@ Errors:
 - Quantity exceeds available stock
 - variant_id and quantity are required
 
-
 ## 3. Update Cart Item Quantity
 
 ### PUT /api/cart/:id
@@ -926,4 +924,186 @@ Rules:
 Errors:
 
 - Cart item not found
+- Unauthorized
+
+
+# XII. ADDRESS MODULE
+
+---
+
+## 1. Get Addresses
+
+### GET /api/addresses
+
+Description:
+Lấy danh sách địa chỉ của user
+
+Headers:
+Authorization: Bearer
+
+Response:
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "receiver_name": "Nguyen Van A",
+      "phone": "0123456789",
+      "city": "Hanoi",
+      "ward": "Hoan Kiem",
+      "detail_address": "123 Tran Hung Dao",
+      "is_default": true
+    }
+  ]
+}
+
+Rules:
+
+- Sắp xếp theo is_default DESC
+- Mỗi user tối đa 3 địa chỉ
+
+Errors:
+
+- Unauthorized
+
+---
+
+## 2. Create Address
+
+### POST /api/addresses
+
+Description:
+Tạo địa chỉ mới
+
+Headers:
+Authorization: Bearer
+
+Request:
+{
+  "receiver_name": "Nguyen Van A",
+  "phone": "0123456789",
+  "city": "Hanoi",
+  "ward": "Hoan Kiem",
+  "detail_address": "123 Tran Hung Dao",
+  "is_default": true
+}
+
+Response:
+{
+  "success": true,
+  "message": "Address created successfully",
+  "data": {
+    "id": 1,
+    "is_default": true
+  }
+}
+
+Rules:
+
+- Tối đa 3 địa chỉ
+- Nếu is_default = true → tất cả address khác = false
+
+Errors:
+
+- Maximum 3 addresses allowed
+- Validation error
+- Unauthorized
+
+---
+
+## 3. Update Address
+
+### PUT /api/addresses/:id
+
+Description:
+Cập nhật thông tin địa chỉ
+
+Headers:
+Authorization: Bearer
+
+Request:
+{
+  "receiver_name": "Nguyen Van B",
+  "phone": "0987654321",
+  "city": "Hanoi",
+  "ward": "Ba Dinh",
+  "detail_address": "456 Kim Ma",
+  "is_default": true
+}
+
+Response:
+{
+  "success": true,
+  "message": "Address updated successfully"
+}
+
+Rules:
+
+- Chỉ update address của chính user
+- Nếu is_default = true → tất cả address khác = false
+
+Errors:
+
+- Address not found
+- Unauthorized
+- Validation error
+
+---
+
+## 4. Set Default Address
+
+### PATCH /api/addresses/:id/default
+
+Description:
+Đặt địa chỉ làm mặc định
+
+Headers:
+Authorization: Bearer
+
+Response:
+{
+  "success": true,
+  "message": "Set default address successfully",
+  "data": {
+    "id": 2,
+    "is_default": true
+  }
+}
+
+Rules:
+
+- Chỉ có 1 address default
+- Khi set default → tất cả address khác = false
+
+Errors:
+
+- Address not found
+- Unauthorized
+
+---
+
+## 5. Delete Address
+
+### DELETE /api/addresses/:id
+
+Description:
+Xóa địa chỉ
+
+Headers:
+Authorization: Bearer
+
+Response:
+{
+  "success": true,
+  "message": "Address deleted successfully"
+}
+
+Rules:
+
+- Nếu xóa address đang default → tự động set address khác làm default (nếu còn)
+- Chỉ được xóa address của chính user
+
+Errors:
+
+- Address not found
 - Unauthorized

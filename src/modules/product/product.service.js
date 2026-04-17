@@ -116,7 +116,7 @@ const createProduct = async (data) => {
             }
 
             if (variants.length) {
-            // Check for duplicate variants
+                // Check for duplicate variants
                 const seen = new Set();
 
                 for (const variant of variants) {
@@ -206,7 +206,7 @@ const updateProduct = async (productId, data) => {
                 const key = `${variant.color}-${variant.size}`;
 
                 if (seen.has(key)) {
-                    throw new Error(`Duplicate variant: color=${variant.color}, size=${variant.size}`);
+                    throw new Error(`Duplicate variant: ${key}`);
                 }
 
                 seen.add(key);

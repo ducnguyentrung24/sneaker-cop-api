@@ -14,6 +14,7 @@ app.use(morgan('dev'));
 // Routes
 const authRoutes = require('./modules/auth/auth.route');
 const userRoutes = require('./modules/user/user.route');
+const addressRoutes = require('./modules/address/address.route');
 const brandRoutes = require('./modules/brand/brand.route');
 const categoryRoutes = require('./modules/category/category.route');
 const productRoutes = require('./modules/product/product.route');
@@ -25,6 +26,7 @@ app.use('/brands', brandRoutes);
 app.use('/categories', categoryRoutes);
 app.use('/products', productRoutes);
 app.use('/cart', cartRoutes);
+app.use('/addresses', addressRoutes);
 
 // Test
 app.get('/', (req, res) => {

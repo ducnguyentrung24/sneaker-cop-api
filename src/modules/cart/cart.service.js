@@ -4,7 +4,6 @@ const Cart = require("./cart.model");
 const CartItem = require("./cartItem.model");
 const ProductVariant = require("../product/productVariant.model");
 const Product = require("../product/product.model");
-const User = require("../user/user.model");
 
 const getCart = async (userId) => {
     // 1. Get cart + join full
@@ -45,11 +44,9 @@ const getCart = async (userId) => {
         const variant = item.variant;
         const product = variant.product;
 
-        // Trước giảm giá
+        // Tính tiền (đã trừ discount)
         const variantPrice = Number(variant.price);
         const discount = Number(product.discount_percent) || 0;
-
-        // Sau giảm giá
         const finalPrice = variantPrice * (1 - discount / 100);
 
         const quantity = item.quantity;
