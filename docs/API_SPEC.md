@@ -926,7 +926,6 @@ Errors:
 - Cart item not found
 - Unauthorized
 
-
 # XII. ADDRESS MODULE
 
 ---
@@ -1107,3 +1106,225 @@ Errors:
 
 - Address not found
 - Unauthorized
+
+
+# XIII. ORDER MODULE
+
+---
+
+## 1. Checkout
+
+### POST /api/orders
+
+Description:
+Tạo đơn hàng từ giỏ hàng (checkout)
+
+Headers:
+Authorization: Bearer
+
+Request:
+{
+  "address_id": 1,
+  "payment_method": "COD",
+  "note": "Giao sau 6h tối"
+}
+
+Response:
+{
+  "success": true,
+  "message": "Checkout successful",
+  "data": {
+    "id": 1,
+    "order_code": "ORD-1710000000000",
+    "status": "PENDING"
+  }
+}
+
+Rules:
+
+- Bắt buộc có address_id
+- payment_method: COD | VNPAY (optional, default = COD)
+- note là optional
+- Cart không được rỗng
+- Trừ stock ngay khi checkout
+- Clear cart sau khi tạo đơn
+
+Errors:
+
+- Cart is empty
+- Address not found
+- Invalid payment method
+- Out of stock
+- Unauthorized
+
+---
+
+## 2. Get My Orders
+
+### GET /api/orders?page=1&limit=10&status=&sort=
+
+Description:
+Lấy danh sách đơn hàng của user (có phân trang + filter)
+
+Headers:
+Authorization: Bearer
+
+Query params:
+
+- page (number, default = 1)
+- limit (number, default = 10)
+- status (optional)
+- sort (optional, format: field:asc|desc)
+
+Response:
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "order_code": "ORD-123",
+      "status": "SHIPPING",
+      "created_at": "2024-06-12",
+      "total_price": 4500000,
+      "items": [
+        {
+          "product_name": "Nike Jordan 1 Low",
+          "color": "Wolf Grey",
+          "size": 42,
+          "image": "https://...",
+          "quantity": 1,
+          "price": 4500000
+        }
+      ]
+    }
+  ],
+  "pagination": {
+    "total": 5,
+    "page": 1,
+    "limit": 10,
+    "total_pages": 1
+  }
+}
+
+Rules:
+
+- Chỉ lấy order của chính user
+- Có include items (variant + product)
+- Không trả full detail (chỉ summary)
+- Sort mặc định: created_at DESC
+
+Errors:
+
+- Unauthorized
+
+---
+
+## 3. Get Order Detail
+
+### GET /api/orders/:id
+
+Description:
+Lấy chi tiết đơn hàng
+
+Headers:
+Authorization: Bearer
+
+Response:
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "order_code": "ORD-123",
+    "status": "PENDING",
+    "created_at": "2024-06-12",
+    "receiver_name": "Nguyen Van A",
+    "phone": "0123456789",
+    "full_address": "123 Tran Hung Dao, Hoan Kiem, Hanoi",
+    "note": "Giao sau 6h tối",
+    "payment_method": "COD",
+    "payment_status": "UNPAID",
+    "items": [
+      {
+        "product_name": "Nike Jordan 1 Low",
+        "color": "Wolf Grey",
+        "size": 42,
+        "quantity": 1,
+        "price": 4500000,
+        "image": "https://..."
+      }
+    ],
+    "total_price": 4500000,
+    "shipping_fee": 0,
+    "final_price": 4500000
+  }
+}
+
+Rules:
+
+- Chỉ xem order của chính user
+- Include đầy đủ items + variant + product
+- Trả snapshot address
+
+Errors:
+
+- Order not found
+- Unauthorized
+
+---
+
+## 4. Cancel Order
+
+### PATCH /api/orders/:id/cancel
+
+Description:
+Huỷ đơn hàng
+
+Headers:
+Authorization: Bearer
+
+Response:
+{
+  "success": true,
+  "message": "Order cancelled successfully"
+}
+
+Rules:
+
+- Chỉ huỷ khi status = PENDING
+- Hoàn lại stock
+- Không được huỷ đơn đã xử lý
+
+Errors:
+
+- Order not found
+- Only pending orders can be cancelled
+- Unauthorized
+
+---
+
+# XIV. ORDER ENUMS
+
+---
+
+## 1. Order Status
+
+PENDING
+PROCESSING
+SHIPPING
+COMPLETED
+CANCELLED
+
+---
+
+## 2. Payment Method
+
+COD
+VNPAY
+
+---
+
+## 3. Payment Status
+
+UNPAID
+PAID
+FAILED

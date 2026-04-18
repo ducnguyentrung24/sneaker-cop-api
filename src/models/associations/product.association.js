@@ -3,7 +3,6 @@ const ProductImage = require('../../modules/product/productImage.model');
 const ProductVariant = require('../../modules/product/productVariant.model');
 
 const initProductAssociations = () => {
-
     // Product - ProductImage (1 - N)
     Product.hasMany(ProductImage, {
         foreignKey: 'product_id',
