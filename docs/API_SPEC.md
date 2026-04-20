@@ -1107,7 +1107,6 @@ Errors:
 - Address not found
 - Unauthorized
 
-
 # XIII. ORDER MODULE
 
 ---
@@ -1328,3 +1327,143 @@ VNPAY
 UNPAID
 PAID
 FAILED
+
+
+# XV. PAYMENT MODULE (VNPAY)
+
+---
+
+## 1. Create Payment URL
+
+### GET /api/payment/vnpay/:orderId
+
+Description:
+Tạo URL thanh toán VNPAY cho đơn hàng
+
+Headers:
+Authorization: Bearer
+
+Params:
+
+* orderId (number)
+
+Response:
+{
+"success": true,
+"data": {
+"payment_url": "[https://sandbox.vnpayment.vn/paymentv2/vpcpay.html](https://sandbox.vnpayment.vn/paymentv2/vpcpay.html)?...",
+"txn_ref": "ORD-1710000000000_1710001234567"
+}
+}
+
+Rules:
+
+* Order phải tồn tại
+* Order chưa PAID
+* Mỗi lần gọi tạo txnRef mới (retry luôn tại đây)
+* txnRef phải unique
+* Không reuse txnRef cũ
+* vnp_OrderType bắt buộc
+
+Errors:
+
+* Order not found
+* Order already paid
+* Unauthorized
+
+---
+
+## 2. VNPAY Return (Callback)
+
+### GET /api/payment/vnpay-return
+
+Description:
+API callback từ VNPAY sau khi thanh toán
+
+Query Params (VNPAY gửi):
+
+* vnp_Amount
+* vnp_TxnRef
+* vnp_ResponseCode
+* vnp_SecureHash
+* vnp_TransactionStatus
+* vnp_PayDate
+  ...
+
+Logic:
+
+* Verify signature (bắt buộc)
+* Parse txnRef → lấy order_code
+* Find order theo order_code
+* Idempotent:
+  * nếu đã PAID → return luôn
+* Nếu vnp_ResponseCode = "00":
+  * payment_status = PAID
+  * status = PROCESSING
+* Nếu fail:
+  * payment_status = FAILED
+* Redirect frontend
+
+Response:
+Redirect → CLIENT_URL/payment-result?status=success|fail&orderCode=...
+
+Errors:
+
+* Invalid signature
+* Order not found
+
+---
+
+# XVI. PAYMENT RULES
+
+## 1. Transaction Rules
+
+* Mỗi lần thanh toán = txnRef mới
+* txnRef format:
+  ORD-123_1710000000000
+* Không reuse txnRef
+
+---
+
+## 2. Signature Rules
+
+* Params phải sort trước khi ký
+* Không encode khi ký
+* Encode khi build URL
+* Không double encode
+
+---
+
+## 3. Callback Rules
+
+* Verify signature bắt buộc
+* Không trust query nếu chưa verify
+* Idempotent (callback có thể gọi nhiều lần)
+
+---
+
+## 4. Security Rules
+
+* Check amount = order.final_price
+* Không update nếu đã PAID
+* Không thanh toán lại order đã PAID
+
+---
+
+# XVII. PAYMENT FLOW
+
+1. User checkout → tạo order (PENDING, UNPAID)
+2. User bấm thanh toán:
+   → GET /api/payment/vnpay/:orderId
+3. Backend:
+   → tạo payment_url
+   → tạo txnRef mới
+4. Frontend redirect sang VNPAY
+5. User thanh toán
+6. VNPAY redirect về:
+   → /api/payment/vnpay-return
+7. Backend:
+   * verify signature
+   * update order
+8. Redirect frontend:
+   → payment-result page
