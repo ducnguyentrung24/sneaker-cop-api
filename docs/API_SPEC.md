@@ -1328,7 +1328,6 @@ UNPAID
 PAID
 FAILED
 
-
 # XV. PAYMENT MODULE (VNPAY)
 
 ---
@@ -1467,3 +1466,161 @@ Errors:
    * update order
 8. Redirect frontend:
    → payment-result page
+
+
+# XVIII. REVIEW MODULE
+
+---
+
+## 1. Create Review
+
+### POST /api/reviews
+
+Description:
+Tạo đánh giá cho sản phẩm sau khi mua
+
+Headers:
+Authorization: Bearer
+
+Request:
+
+```json
+{
+  "product_id": 1,
+  "order_id": 1,
+  "rating": 5,
+  "comment": "Sản phẩm rất tốt"
+}
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "message": "Review created successfully",
+  "data": {
+    "id": 1,
+    "product_id": 1,
+    "order_id": 1,
+    "rating": 5,
+    "comment": "Sản phẩm rất tốt",
+    "created_at": "2026-04-21"
+  }
+}
+```
+
+Rules:
+
+* Order phải thuộc user
+* Order phải có status = COMPLETED
+* Product phải tồn tại trong order
+* Mỗi product trong 1 order chỉ được review 1 lần
+* Rating từ 1 → 5
+
+Errors:
+
+* Order not found
+* Only completed orders can be reviewed
+* Product not found in this order
+* You already reviewed this product
+* Unauthorized
+
+---
+
+## 2. Get Reviews By Product
+
+### GET /api/reviews/product/:productId?page=1&limit=5&rating=&sort=
+
+Description:
+Lấy danh sách đánh giá của sản phẩm (có phân trang + filter + sort)
+
+Query params:
+
+* page (number, default = 1)
+* limit (number, default = 5)
+* rating (optional: 1-5)
+* sort (optional, format: field:asc|desc, default: created_at:desc)
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "average_rating": 4.8,
+    "total_reviews": 120,
+    "rating_distribution": {
+      "5": 100,
+      "4": 15,
+      "3": 5,
+      "2": 0,
+      "1": 0
+    },
+    "reviews": [
+      {
+        "id": 1,
+        "rating": 5,
+        "comment": "Good",
+        "created_at": "2026-04-21"
+      }
+    ],
+    "pagination": {
+      "total": 100,
+      "page": 1,
+      "limit": 5,
+      "total_pages": 20,
+      "hasNext": true,
+      "hasPrev": false
+    }
+  }
+}
+```
+
+Rules:
+
+* `total_reviews` = tổng tất cả review của product
+* `pagination.total` = số review sau filter
+* Có thể filter theo rating
+* Có thể sort theo rating hoặc created_at
+
+Errors:
+
+* Product not found
+
+---
+
+## 3. Review Rules
+
+---
+
+### 1. Review Condition
+
+* User chỉ được review sản phẩm đã mua
+* Order phải COMPLETED
+* Không được review lại cùng product trong cùng order
+
+---
+
+### 2. Rating Rules
+
+* Rating từ 1 đến 5
+* Không chấp nhận giá trị ngoài khoảng
+
+---
+
+### 3. Data Integrity
+
+* Không trust product_id từ client
+* Backend phải verify qua order_items + product_variant
+
+---
+
+### 4. UI Mapping
+
+* average_rating → hiển thị số sao trung bình
+* rating_distribution → dùng để vẽ biểu đồ rating
+* reviews → danh sách review
+* pagination → phân trang
+
+---

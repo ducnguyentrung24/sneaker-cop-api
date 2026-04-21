@@ -12,18 +12,21 @@ require('../modules/cart/cart.model');
 require('../modules/cart/cartItem.model');
 require('../modules/order/order.model');
 require('../modules/order/orderItem.model');
+require('../modules/review/review.model');
 
 // load associations
 const initAddressAssociations = require('./associations/address.association');
 const initProductAssociations = require('./associations/product.association');
 const initCartAssociations = require('./associations/cart.association');
 const initOrderAssociations = require('./associations/order.association');
+const initReviewAssociations = require('./associations/review.association');
 
 const initModels = () => {
     initAddressAssociations();
     initProductAssociations();
     initCartAssociations();
     initOrderAssociations();
+    initReviewAssociations();
 };
 
 module.exports = {

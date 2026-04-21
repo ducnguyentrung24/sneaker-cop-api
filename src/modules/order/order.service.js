@@ -175,6 +175,7 @@ const getMyOrders = async (userId, query) => {
         total_price: order.final_price,
 
         items: order.items.map(item => ({
+            product_id: item.variant.product.id,
             product_name: item.variant.product.name,
             color: item.variant.color,
             size: item.variant.size,
@@ -251,6 +252,7 @@ const getOrderDetail = async (userId, orderId) => {
             quantity: item.quantity,
             price: item.price,
 
+            product_id: item.variant.product.id,
             product_name: item.variant.product.name,
             color: item.variant.color,
             size: item.variant.size,
