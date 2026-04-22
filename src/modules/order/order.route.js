@@ -5,10 +5,16 @@ const orderController = require('./order.controller');
 const { authenticate } = require('../../middleware/auth.middleware');
 const { validateCheckout } = require('./order.validate');
 
-router.post('/',
+router.post('/checkout/cart',
     authenticate, 
     validateCheckout, 
-    orderController.checkout
+    orderController.checkoutFromCart
+);
+
+router.post('/checkout/buy-now',
+    authenticate, 
+    validateCheckout, 
+    orderController.checkoutFromBuyNow
 );
 
 router.get('/', authenticate, orderController.getMyOrders);

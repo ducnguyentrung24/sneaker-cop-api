@@ -15,13 +15,69 @@ const genrateOrderCode = () => {
     return `ORD-${Date.now()}`;
 };
 
-const checkout = async (userId, addressId, paymentMethod, note) => {
+const processOrder = async ({
+    userId,
+    items,
+    address,
+    payment_method,
+    note,
+    transaction
+}) => {
+    let total = 0;
+
+    const order = await Order.create({
+        order_code: genrateOrderCode(),
+        user_id: userId,
+
+        receiver_name: address.receiver_name,
+        phone: address.phone,
+        city: address.city,
+        ward: address.ward,
+        detail_address: address.detail_address,
+
+        payment_method: payment_method || paymentMethods.COD,
+        note: note || null,
+
+        total_price: 0,
+        final_price: 0,
+    }, { transaction });
+
+    for (const { variant, quantity } of items) {
+        if (!variant) throw new Error('Variant not found');
+        if (variant.stock < quantity) throw new Error('Out of stock');
+
+        const price = Number(variant.price);
+        total += price * quantity;
+
+        await OrderItem.create({
+            order_id: order.id,
+            product_variant_id: variant.id,
+            quantity,
+            price,
+        }, { transaction });
+
+        await variant.update({
+            stock: variant.stock - quantity,
+        }, { transaction });
+    }
+
+    await order.update({
+        total_price: total,
+        final_price: total,
+    }, { transaction });
+
+    return order;
+};
+
+const checkoutFromCart = async (userId, data) => {
     return await sequelize.transaction(async (transaction) => {
-        if (paymentMethod && !Object.values(paymentMethods).includes(paymentMethod)) {
+        const { address_id, payment_method, note } = data;
+
+        if (payment_method && !Object.values(paymentMethods).includes(payment_method)) {
             throw new Error('Invalid payment method');
         }
 
-        // 1. Get cart
+        // Get cart
         const cart = await Cart.findOne({
             where: { user_id: userId },
             include: {
@@ -35,75 +91,61 @@ const checkout = async (userId, addressId, paymentMethod, note) => {
             transaction,
         });
 
-        if (!cart || cart.items.length === 0) {
-            throw new Error('Cart is empty');
-        }
+        if (!cart || cart.items.length === 0) throw new Error('Cart is empty');
 
-        // 2. Get address
+        // Get address
         const address = await Address.findByPk(addressId, { transaction });
-        if (!address) {
-            throw new Error('Address not found');
-        }
+        if (!address) throw new Error('Address not found');
 
-        let total = 0;
+        // Map items
+        const items = cart.items.map(item => ({
+            variant: item.variant,
+            quantity: item.quantity,
+        }));
 
-        // 3. Create order
-        const order = await Order.create({
-            order_code: genrateOrderCode(),
-            user_id: userId,
+        // create order
+        const order = await processOrder({
+            userId,
+            items,
+            address,
+            payment_method,
+            note,
+            transaction,
+        });
 
-            receiver_name: address.receiver_name,
-            phone: address.phone,
-            city: address.city,
-            ward: address.ward,
-            detail_address: address.detail_address,
-
-            payment_method: paymentMethod || paymentMethod.COD,
-
-            note: note || null,
-
-            total_price: 0,
-            final_price: 0,
-
-        }, { transaction });
-
-        // 4. Create order items
-        for (const item of cart.items) {
-            const variant = item.variant;
-            if (!variant) {
-                throw new Error('Variant not found');
-            }
-
-            if (variant.stock < item.quantity) {
-                throw new Error('Out of stock');
-            }
-
-            const price = Number(variant.price);
-
-            total += price * item.quantity;
-
-            await OrderItem.create({
-                order_id: order.id,
-                product_variant_id: variant.id,
-                quantity: item.quantity,
-                price,
-            }, { transaction });
-
-            // Trừ stock
-            await variant.update({
-                stock: variant.stock - item.quantity,
-            }, { transaction });
-        }
-
-        // 5. Update order total price
-        await order.update({
-            total_price: total,
-            final_price: total,
-        }, { transaction });
-
-        // 6. Clear cart
+        // Clear cart
         await CartItem.destroy({
             where: { cart_id: cart.id },
+            transaction,
+        });
+
+        return order;
+    });
+};
+
+const checkoutFromBuyNow = async (userId, data) => {
+    return await sequelize.transaction(async (transaction) => {
+        const { variant_id, quantity, address_id, payment_method, note } = data;
+
+        if (payment_method && !Object.values(paymentMethods).includes(payment_method)) {
+            throw new Error('Invalid payment method');
+        }
+
+        if (quantity <= 0) throw new Error('Invalid quantity');
+
+        const variant = await ProductVariant.findByPk(variant_id, { transaction });
+        if (!variant) throw new Error('Variant not found');
+
+        const address = await Address.findByPk(address_id, { transaction });
+        if (!address) throw new Error('Address not found');
+
+        // create order
+        const order = await processOrder({
+            userId,
+            items: [{ variant, quantity }],
+            address,
+            payment_method,
+            note,
             transaction,
         });
 
@@ -315,7 +357,8 @@ const cancelOrder = async (userId, orderId) => {
 };
 
 module.exports = {
-    checkout,
+    checkoutFromCart,
+    checkoutFromBuyNow,
     getMyOrders,
     getOrderDetail,
     cancelOrder,

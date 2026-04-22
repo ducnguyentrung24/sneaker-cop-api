@@ -53,7 +53,7 @@ const updateBrand = async (id, data) => {
         throw new Error("Brand not found");
     }
 
-    const exitstingBrand = await Brand.findOne({ where: { name: data.name } });
+    const exitstingBrand = await Brand.findOne({ where: { name } });
     if (exitstingBrand && exitstingBrand.id !== brand.id) {
         throw new Error("Brand name already exists");
     }

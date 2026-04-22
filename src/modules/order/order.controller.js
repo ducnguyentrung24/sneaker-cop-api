@@ -1,25 +1,29 @@
 const orderService = require('./order.service');
 
-const checkout = async (req, res) => {
+const checkoutFromCart = async (req, res) => {
     try {
-        const { address_id, payment_method, note } = req.body;
-        if (!address_id) {
-            res.status(400).json({
-                success: false,
-                message: 'Address ID is required',
-            });
-        }
+        const order = await orderService.checkoutFromCart(req.user.id, req.body);
 
-        const order = await orderService.checkout( 
-            req.user.id,
-            address_id,
-            payment_method,
-            note
-        );
-
-        res.status(201).json({
+        res.status(200).json({
             success: true,
-            message: 'Checkout successful',
+            message: 'Checkout from cart successful',
+            data: order,
+        });
+    } catch(error) {
+        res.status(400).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
+const checkoutFromBuyNow = async (req, res) => {
+    try {
+        const order = await orderService.checkoutFromBuyNow(req.user.id, req.body);
+
+        res.status(200).json({
+            success: true,
+            message: 'Checkout buy now successful',
             data: order,
         });
     } catch(error) {
@@ -82,7 +86,8 @@ const cancelOrder = async (req, res) => {
 };
 
 module.exports = {
-    checkout,
+    checkoutFromCart,
+    checkoutFromBuyNow,
     getMyOrders,
     getOrderDetail,
     cancelOrder,
