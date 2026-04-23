@@ -1,6 +1,5 @@
-const { set } = require('../../app');
-const Address = require('./address.model');
 const { Op } = require('sequelize');
+const Address = require('./address.model');
 
 const getAddresses = async (userId) => {
     return await Address.findAll({
@@ -15,13 +14,9 @@ const getAddresses = async (userId) => {
 const createAddress = async (userId, data) => {
     const { receiver_name, phone, city, ward, detail_address, is_default } = data;
 
-    const count = await Address.count({
-        where: { user_id: userId }
-    });
+    const count = await Address.count({ where: { user_id: userId } });
 
-    if (count >= 3) {
-        throw new Error("You can only have up to 3 addresses");
-    }
+    if (count >= 3) throw new Error("You can only have up to 3 addresses");
 
     if (is_default === true) {
         await Address.update(
@@ -47,13 +42,8 @@ const updateAddress = async (userId, addressId, data) => {
     const { receiver_name, phone, city, ward, detail_address, is_default } = data;
 
     const address = await Address.findByPk(addressId);
-    if (!address) {
-        throw new Error("Address not found");
-    }
-
-    if (address.user_id !== userId) {
-        throw new Error("Unauthorized");
-    }
+    if (!address) throw new Error("Address not found");
+    if (address.user_id !== userId) throw new Error("Unauthorized");
 
     if (is_default === true) {
         await Address.update(
@@ -81,13 +71,8 @@ const updateAddress = async (userId, addressId, data) => {
 
 const setDefaultAddress = async (userId, addressId) => {
     const address = await Address.findByPk(addressId);
-    if (!address) {
-        throw new Error("Address not found");
-    }
-
-    if (address.user_id !== userId) {
-        throw new Error("Unauthorized");
-    }
+    if (!address) throw new Error("Address not found");
+    if (address.user_id !== userId) throw new Error("Unauthorized");
 
     await Address.update(
         { is_default: false },
@@ -106,13 +91,8 @@ const setDefaultAddress = async (userId, addressId) => {
 
 const deleteAddress = async (userId, addressId) => {
     const address = await Address.findByPk(addressId);
-    if (!address) {
-        throw new Error("Address not found");
-    }
-
-    if (address.user_id !== userId) {
-        throw new Error("Unauthorized");
-    }
+    if (!address) throw new Error("Address not found");
+    if (address.user_id !== userId) throw new Error("Unauthorized");
 
     const wasDefault = address.is_default;
 

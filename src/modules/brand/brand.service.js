@@ -6,30 +6,34 @@ const getBrands = async (query) => {
         limit = 10,
     } = query;
 
-    const offset = (page - 1) * limit;
+    const pageNumber = Number(page) || 1;
+    const limitNumber = Number(limit) || 10;
+    const offset = (pageNumber - 1) * limitNumber;
 
     const { rows, count } = await Brand.findAndCountAll({
-        limit: Number(limit),
-        offset: Number(offset),
+        limit: limitNumber,
+        offset,
         order: [['created_at', 'DESC']],
     });
+
+    const totalPages = Math.ceil(count / limitNumber);
 
     return {
         data: rows,
         pagination: {
             total: count,
-            page: Number(page),
-            limit: Number(limit),
-            totalPages: Math.ceil(count / limit),
+            page: pageNumber,
+            limit: limitNumber,
+            totalPages,
+            hasNext: pageNumber < totalPages,
+            hasPrev: pageNumber > 1
         },
     };
 };
 
 const getBrandById = async (id) => {
     const brand = await Brand.findByPk(id);
-    if (!brand) {
-        throw new Error("Brand not found");
-    }
+    if (!brand) throw new Error("Brand not found");
 
     return brand;
 };
@@ -38,9 +42,7 @@ const createBrand = async (data) => {
     const { name } = data;
 
     const existingBrand = await Brand.findOne({ where: { name } });
-    if (existingBrand) {
-        throw new Error("Brand already exists");
-    }
+    if (existingBrand) throw new Error("Brand already exists");
 
     return await Brand.create({ name });
 };
@@ -49,14 +51,10 @@ const updateBrand = async (id, data) => {
     const { name } = data;
 
     const brand = await Brand.findByPk(id);
-    if (!brand) {
-        throw new Error("Brand not found");
-    }
+    if (!brand) throw new Error("Brand not found");
 
     const exitstingBrand = await Brand.findOne({ where: { name } });
-    if (exitstingBrand && exitstingBrand.id !== brand.id) {
-        throw new Error("Brand name already exists");
-    }
+    if (exitstingBrand && exitstingBrand.id !== brand.id) throw new Error("Brand name already exists");
 
     await brand.update({ name });
 
@@ -65,9 +63,7 @@ const updateBrand = async (id, data) => {
 
 const deleteBrand = async (id) => {
     const brand = await Brand.findByPk(id);
-    if (!brand) {
-        throw new Error("Brand not found");
-    }
+    if (!brand) throw new Error("Brand not found");
 
     await brand.destroy();
 

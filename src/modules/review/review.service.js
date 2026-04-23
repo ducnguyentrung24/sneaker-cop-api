@@ -14,8 +14,8 @@ const getReviewsByProduct = async (productId, query = {}) => {
         sort = 'created_at:desc'
     } = query;
 
-    const pageNumber = Number(page);
-    const limitNumber = Number(limit);
+    const pageNumber = Number(page) || 1;
+    const limitNumber = Number(limit) || 5;
     const offset = (pageNumber - 1) * limitNumber;
 
     const where = { product_id: productId };
@@ -71,7 +71,6 @@ const getReviewsByProduct = async (productId, query = {}) => {
     });
 
     const average_rating = total ? (sum / total) : 0;
-
     const totalPages = Math.ceil(count / limitNumber);
 
     return {
@@ -83,7 +82,7 @@ const getReviewsByProduct = async (productId, query = {}) => {
             total: count,
             page: pageNumber,
             limit: limitNumber,
-            total_pages: totalPages,
+            totalPages,
             hasNext: pageNumber < totalPages,
             hasPrev: pageNumber > 1
         },

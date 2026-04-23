@@ -6,7 +6,7 @@ const ProductVariant = require("../product/productVariant.model");
 const Product = require("../product/product.model");
 
 const getCart = async (userId) => {
-    // 1. Get cart + join full
+    // Get cart with items and product details
     const cart = await Cart.findOne({
         where: { user_id: userId },
         include: [
@@ -29,7 +29,7 @@ const getCart = async (userId) => {
         ]
     });
 
-    // 2. If no cart, return empty
+    // Check cart exists
     if (!cart) {
         return {
             items: [],
@@ -85,28 +85,23 @@ const getCart = async (userId) => {
 const addToCart = async (userId, data) => {
     return await sequelize.transaction(async (transaction) => {
         const { variant_id, quantity } = data;
+        if (!variant_id || !quantity) throw new Error("variant_id and quantity are required");
 
-        if (!variant_id || !quantity) {
-            throw new Error("variant_id and quantity are required");
-        }
-
-        // 1. Check variant exists
+        // Check variant exists
         const variant = await ProductVariant.findByPk(variant_id, { transaction });
         if (!variant) {
             throw new Error("Product variant not found");
         }
 
-        // 2. Get or create cart
+        // Get or create cart
         let cart = await Cart.findOne({
             where: { user_id: userId },
             transaction
         });
 
-        if (!cart) {
-            cart = await Cart.create({ user_id: userId }, { transaction });
-        }
+        if (!cart) cart = await Cart.create({ user_id: userId }, { transaction });
 
-        // 3.Check item already in cart
+        // Check item already in cart
         let cartItem = await CartItem.findOne({
             where: {
                 cart_id: cart.id,
@@ -120,9 +115,7 @@ const addToCart = async (userId, data) => {
             const newQuantity = cartItem.quantity + quantity;
 
             // Check stock
-            if (newQuantity > variant.stock) {
-                throw new Error("Quantity exceeds available stock");
-            }
+            if (newQuantity > variant.stock) throw new Error("Quantity exceeds available stock");
 
             await cartItem.update(
                 { quantity: newQuantity },
@@ -130,9 +123,7 @@ const addToCart = async (userId, data) => {
             );
         } else {
             // Check stock
-            if (quantity > variant.stock) {
-                throw new Error("Quantity exceeds available stock");
-            }
+            if (quantity > variant.stock) throw new Error("Quantity exceeds available stock");
 
             // Create new cart item
             cartItem = await CartItem.create({
@@ -148,10 +139,7 @@ const addToCart = async (userId, data) => {
 
 const updateQuantity = async (userId, cartItemId, data) => {
     const { quantity } = data;
-
-    if (!quantity || quantity < 1) {
-        throw new Error("Quantity must be at least 1");
-    }
+    if (!quantity || quantity < 1) throw new Error("Quantity must be at least 1");
 
     const cartItem = await CartItem.findByPk(cartItemId, {
         include: [
@@ -165,18 +153,10 @@ const updateQuantity = async (userId, cartItemId, data) => {
         ]
     });
 
-    if (!cartItem) {
-        throw new Error("Cart item not found");
-    }
-
-    if (cartItem.Cart.user_id !== userId) {
-        throw new Error("Unauthorized");
-    }
-
+    if (!cartItem) throw new Error("Cart item not found");
+    if (cartItem.Cart.user_id !== userId) throw new Error("Unauthorized");
     // Check stock
-    if (quantity > cartItem.variant.stock) {
-        throw new Error("Quantity exceeds available stock");
-    }
+    if (quantity > cartItem.variant.stock) throw new Error("Quantity exceeds available stock");
 
     // Update quantity
     await cartItem.update({ quantity });
@@ -193,13 +173,8 @@ const deleteCartItem = async (userId, cartItemId) => {
         ]
     });
 
-    if (!cartItem) {
-        throw new Error("Cart item not found");
-    }
-
-    if (cartItem.Cart.user_id !== userId) {
-        throw new Error("Unauthorized");
-    }
+    if (!cartItem) throw new Error("Cart item not found");
+    if (cartItem.Cart.user_id !== userId) throw new Error("Unauthorized");
 
     await cartItem.destroy();
 

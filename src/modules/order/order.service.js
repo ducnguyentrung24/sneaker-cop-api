@@ -161,13 +161,13 @@ const getMyOrders = async (userId, query) => {
         sort = "created_at:desc"
     } = query;
     
-    const offset = (page - 1) * limit;
+    const pageNumber = Number(page) || 1;
+    const limitNumber = Number(limit) || 10;
+    const offset = (pageNumber - 1) * limitNumber;
 
     const where = { user_id: userId };
 
-    if (status) {
-        where.status = status;
-    }
+    if (status) where.status = status;
 
     let orderSort = [['created_at', 'DESC']];
 
@@ -178,8 +178,8 @@ const getMyOrders = async (userId, query) => {
 
     const { count, rows } = await Order.findAndCountAll({
         where,
-        limit: Number(limit),
-        offset: Number(offset),
+        limit: limitNumber,
+        offset,
         order: orderSort,
 
         include: [
@@ -227,13 +227,15 @@ const getMyOrders = async (userId, query) => {
         })),
     }));
 
+    const totalPages = Math.ceil(count / limitNumber);
+
     return {
         data,
         pagination: {
             total: count,
-            page: Number(page),
-            limit: Number(limit),
-            total_pages: Math.ceil(count / limit),
+            page: pageNumber,
+            limit: limitNumber,
+            totalPages,
         },
     };
 };
@@ -269,9 +271,7 @@ const getOrderDetail = async (userId, orderId) => {
         ],
     });
 
-    if (!order) {
-        throw new Error('Order not found');
-    }
+    if (!order) throw new Error('Order not found');
 
     // format
     const formatted = {
@@ -311,7 +311,7 @@ const getOrderDetail = async (userId, orderId) => {
 
 const cancelOrder = async (userId, orderId) => {
     return await sequelize.transaction(async (transaction) => {
-        // 1. Get order + items
+        // Get order + items
         const order = await Order.findOne({
             where: {
                 id: orderId,
@@ -324,16 +324,11 @@ const cancelOrder = async (userId, orderId) => {
             transaction,
         });
 
-        if (!order) {
-            throw new Error('Order not found');
-        }
+        if (!order) throw new Error('Order not found');
+        // Check status
+        if (order.status !== orderStatus.PENDING) throw new Error('Only pending orders can be cancelled');
 
-        // 2.Check status
-        if (order.status !== orderStatus.PENDING) {
-            throw new Error('Only pending orders can be cancelled');
-        }
-
-        // 3. Restore stock
+        // Restore stock
         for (const item of order.items) {
             const variant = await ProductVariant.findByPk(
                 item.product_variant_id, 
@@ -347,7 +342,7 @@ const cancelOrder = async (userId, orderId) => {
             }, { transaction });
         }
 
-        // 4. Update order status
+        // Update order status
         await order.update({
             status: orderStatus.CANCELLED,
         }, { transaction });

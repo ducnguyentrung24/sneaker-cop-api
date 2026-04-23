@@ -67,9 +67,7 @@ const getProductById = async (productId) => {
             { association: 'variants'}
         ]
     });
-    if (!product) {
-        throw new Error("Product not found");
-    }
+    if (!product) throw new Error("Product not found");
 
     return product;
 };
@@ -79,9 +77,7 @@ const createProduct = async (data) => {
         const { images, variants, ...productData } = data;
 
         // Check images
-        if (images && images.length > 4) {
-            throw new Error("Maximum 4 images allowed");
-        }
+        if (images && images.length > 4) throw new Error("Maximum 4 images allowed");
 
         // Check for duplicate name
         if (productData.name) {
@@ -91,15 +87,13 @@ const createProduct = async (data) => {
                 }
             });
 
-            if (existingProduct) {
-                throw new Error("Product name already exists");
-            }
+            if (existingProduct) throw new Error("Product name already exists");
         }
 
-        // 1. create product
+        // Create product
         const product = await Product.create(productData, { transaction });
 
-        // 2. create images
+        // Create images
         if (images?.length) {
             const imageData = images.map(url => ({
                 product_id: product.id,
@@ -109,11 +103,9 @@ const createProduct = async (data) => {
             await ProductImage.bulkCreate(imageData, { transaction });
         }
 
-        // 3. create variants
+        // Create variants
         if (variants) {
-            if (!Array.isArray(variants)) {
-                throw new Error("Variants must be an array");
-            }
+            if (!Array.isArray(variants)) throw new Error("Variants must be an array");
 
             if (variants.length) {
                 // Check for duplicate variants
@@ -121,10 +113,7 @@ const createProduct = async (data) => {
 
                 for (const variant of variants) {
                     const key = `${variant.color}-${variant.size}`;
-
-                    if (seen.has(key)) {
-                        throw new Error(`Duplicate variant: ${key}`);
-                    }
+                    if (seen.has(key)) throw new Error(`Duplicate variant: ${key}`);
 
                     seen.add(key);
                 }
@@ -149,16 +138,12 @@ const createProduct = async (data) => {
 const updateProduct = async (productId, data) => {
     return await sequelize.transaction(async (transaction) => {
         const product = await Product.findByPk(productId, { transaction });
-        if (!product) {
-            throw new Error("Product not found");
-        }
+        if (!product) throw new Error("Product not found");
 
         const { images, variants, ...productData } = data;
 
         // Check images
-        if (images && images.length > 4) {
-            throw new Error("Maximum 4 images allowed");
-        }
+        if (images && images.length > 4) throw new Error("Maximum 4 images allowed");
 
         // Check for duplicate name
         if (productData.name) {
@@ -169,15 +154,13 @@ const updateProduct = async (productId, data) => {
                 }
             });
 
-            if (existingProduct) {
-                throw new Error("Product name already exists");
-            }
+            if (existingProduct) throw new Error("Product name already exists");
         }
 
-        // 1. update product
+        // Update product
         await product.update(productData, { transaction });
 
-        // 2. update images
+        // Update images
         if (images) {
             // Delete old images
             await ProductImage.destroy({
@@ -193,21 +176,16 @@ const updateProduct = async (productId, data) => {
             await ProductImage.bulkCreate(imageData, { transaction });
         }
 
-        // 3. update variants
+        // Update variants
         if (variants) {
-            if (!Array.isArray(variants)) {
-                throw new Error("Variants must be an array");
-            }
+            if (!Array.isArray(variants)) throw new Error("Variants must be an array");
 
             // Check for duplicate variants
             const seen = new Set();
 
             for (const variant of variants) {
                 const key = `${variant.color}-${variant.size}`;
-
-                if (seen.has(key)) {
-                    throw new Error(`Duplicate variant: ${key}`);
-                }
+                if (seen.has(key)) throw new Error(`Duplicate variant: ${key}`);
 
                 seen.add(key);
             }
@@ -236,9 +214,7 @@ const updateProduct = async (productId, data) => {
 
 const deleteProduct = async (productId) => {
     const product = await Product.findByPk(productId);
-    if (!product) {
-        throw new Error("Product not found");
-    }
+    if (!product) throw new Error("Product not found");
 
     await product.destroy();
 

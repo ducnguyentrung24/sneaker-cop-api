@@ -6,9 +6,7 @@ const register = async (data) => {
     const { email, password, full_name } = data;
 
     const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) {
-        throw new Error("Email already exists");
-    }
+    if (existingUser) throw new Error("Email already exists");
 
     const hashedPassword = await hashPassword(password);
 
@@ -29,14 +27,10 @@ const login = async (data) => {
     const { email, password } = data;
 
     const user = await User.findOne({ where: { email } });
-    if (!user) {
-        throw new Error("Invalid email or password");
-    }
+    if (!user) throw new Error("Invalid email or password");
 
     const isMatch = await comparePassword(password, user.password);
-    if (!isMatch) {
-        throw new Error("Invalid email or password");
-    }
+    if (!isMatch) throw new Error("Invalid email or password");
 
     const token = generateToken({
         id: user.id,

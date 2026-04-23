@@ -27,7 +27,6 @@ const createSignature = (params) => {
 const createPaymentUrl = async (orderId) => {
     const order = await Order.findByPk(orderId);
     if (!order) throw new Error('Order not found');
-
     if (order.payment_status === paymentStatus.PAID) throw new Error('Order already paid');
 
     const date = moment().format('YYYYMMDDHHmmss');
@@ -79,7 +78,6 @@ const handleVnpayReturn = async (query) => {
         });
 
         if (!order) throw new Error('Order not found');
-
         // idempotent check
         if (order.payment_status === paymentStatus.PAID) return order;
 
