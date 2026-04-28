@@ -23,6 +23,10 @@ const Product = sequelize.define('Product', {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
     },
+    final_price: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+    },
     discount_percent: {
         type: DataTypes.INTEGER,
         defaultValue: 0,
