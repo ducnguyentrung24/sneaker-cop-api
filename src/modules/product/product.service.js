@@ -6,6 +6,17 @@ const ProductImage = require("./productImage.model");
 const ProductVariant = require("./productVariant.model");
 const Review = require("../review/review.model");
 
+const paresArray = (value) => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value.map(Number);
+    if (typeof value === "string") return value.split(",").map(Number);
+    return [];
+};
+
+const calculateFinalPrice = (base_price, discount_percent = 0) => {
+    return Number(base_price) * (1 - Number(discount_percent) / 100);
+};
+
 const applyFilter = (filter, where) => {
     switch (filter) {
         case "best_seller":
@@ -37,22 +48,6 @@ const applySort = (sort) => {
     }
 };
 
-const paresArray = (value) => {
-    if (!value) return [];
-
-    if (Array.isArray(value)) return value.map(Number);
-
-    if (typeof value === "string") {
-        return value.split(",").map(Number);
-    }
-
-    return [];
-};
-
-const calculateFinalPrice = (base_price, discount_percent = 0) => {
-    return Number(base_price) * (1 - Number(discount_percent) / 100);
-};
-
 const getProducts = async (query) => {
     const {
         page = 1,
@@ -63,11 +58,9 @@ const getProducts = async (query) => {
         min_discount_percent,
         sort,
         filter,
-        min_price,
-        max_price,
+        min_price = null,
+        max_price = null,
     } = query;
-
-    console.log("Query: ", query);
 
     const pageNum = Number(page) || 1;
     const limitNum = Number(limit) || 10;
@@ -90,19 +83,20 @@ const getProducts = async (query) => {
     
     if (min_discount_percent) {
         where.discount_percent = { 
-            ...(where.discount_percent || {}),
             [Op.gte]: Number(min_discount_percent) 
         };
     
     }
 
-    if (min_price || max_price) {
-        where.final_price = {
-            ...(where.final_price || {}),
-        };
+    if (min_price !== null || max_price !== null) {
+        where.final_price = {};
 
-        if (min_price) where.final_price[Op.gte] = Number(min_price);
-        if (max_price) where.final_price[Op.lte] = Number(max_price);
+        if (min_price === null && max_price !== null) where.final_price[Op.lt] = Number(max_price);
+        else if (min_price !== null && max_price === null) where.final_price[Op.gt] = Number(min_price);
+        else if (min_price !== null && max_price !== null) {
+            where.final_price[Op.gte] = Number(min_price);
+            where.final_price[Op.lte] = Number(max_price);
+        }
     }
 
     if (filter) applyFilter(filter, where);
