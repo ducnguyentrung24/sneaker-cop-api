@@ -1,5 +1,6 @@
 const { sequelize } = require('../../models');
 const Review = require('./review.model');
+const User = require('../user/user.model');
 const Order = require('../order/order.model');
 const OrderItem = require('../order/orderItem.model');
 const ProductVariant = require('../product/productVariant.model');
@@ -35,6 +36,13 @@ const getReviewsByProduct = async (productId, query = {}) => {
         limit: limitNumber,
         offset,
         order,
+        include: [
+            {
+                model: User,
+                as: 'user',
+                attributes: ['id', 'full_name'],
+            }
+        ]
     });
 
     // stast + avg
