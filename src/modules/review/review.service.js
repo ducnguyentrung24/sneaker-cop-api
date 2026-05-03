@@ -21,7 +21,7 @@ const getReviewsByProduct = async (productId, query = {}) => {
 
     const where = { product_id: productId };
 
-    if (rating) where.rating = rating;
+    if (rating !== undefined && rating !== null) where.rating = Number(rating);
 
     // sort
     let order = [['created_at', 'DESC']];

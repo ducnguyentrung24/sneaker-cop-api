@@ -12,4 +12,6 @@ router.put("/:id", authenticate, cartController.updateQuantity);
 
 router.delete("/:id", authenticate, cartController.deleteCartItem);
 
+router.delete("/", authenticate, cartController.deleteManyCartItems);
+
 module.exports = router;

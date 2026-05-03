@@ -76,9 +76,32 @@ const deleteCartItem = async (req, res) => {
     }
 };
 
+const deleteManyCartItems = async (req, res) => {
+    try {
+        const { ids } = req.body;
+
+        const result = await cartService.deleteManyCartItems(
+            req.user.id, 
+            ids
+        )
+
+        res.status(200).json({
+            success: true,
+            message: "Delete many items successfully",
+            data: result,
+        });
+    } catch(error) {
+        res.status(400).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
 module.exports = {
     getCart,
     addToCart,
     updateQuantity,
     deleteCartItem,
+    deleteManyCartItems,
 };

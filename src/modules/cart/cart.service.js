@@ -71,6 +71,7 @@ const getCart = async (userId) => {
                 id: variant.id,
                 color: variant.color,
                 size: variant.size,
+                stock: variant.stock,
                 image_url: variant.image_url
             }
         };
@@ -181,9 +182,47 @@ const deleteCartItem = async (userId, cartItemId) => {
     return { message: "Cart item deleted successfully" };
 };
 
+const deleteManyCartItems = async (userId, cartItemIds) => {
+    if (!Array.isArray(cartItemIds) || cartItemIds.length === 0) {
+        throw new Error("cartItemIds must be a non-empty array");
+    }
+
+    return await sequelize.transaction(async (transaction) => {
+        const cartItems = await CartItem.findAll({
+            where: {
+                id: cartItemIds
+            },
+            include: [
+                {
+                    model: Cart
+                }
+            ],
+            transaction
+        });
+
+        if (!cartItems.length) throw new Error("Cart items not found");
+
+        for (const item of cartItems) {
+            if (item.Cart.user_id !== userId) throw new Error("Unauthorized");
+        }
+
+        await CartItem.destroy({
+            where: {
+                id: cartItemIds
+            },
+            transaction
+        });
+
+        return {
+            deletedCount: cartItemIds.length
+        };
+    });
+};
+
 module.exports = {
     getCart,
     addToCart,
     updateQuantity,
-    deleteCartItem
+    deleteCartItem,
+    deleteManyCartItems,
 };
