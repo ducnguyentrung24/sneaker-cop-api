@@ -11,13 +11,13 @@ const { authenticate } = require('../../middleware/auth.middleware');
 
 router.get('/profile', authenticate, userController.getProfile);
 
-router.put('/profile',
+router.patch('/profile',
     authenticate,
     validateUpdateProfile,
     userController.updateProfile
 );
 
-router.put('/change-password',
+router.patch('/change-password',
     authenticate,
     validateChangePassword,
     userController.changePassword

@@ -16,7 +16,7 @@ const createAddress = async (userId, data) => {
 
     const count = await Address.count({ where: { user_id: userId } });
 
-    if (count >= 3) throw new Error("You can only have up to 3 addresses");
+    if (count >= 5) throw new Error("You can only have up to 5 addresses");
 
     if (is_default === true) {
         await Address.update(

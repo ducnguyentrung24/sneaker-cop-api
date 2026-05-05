@@ -71,11 +71,13 @@ const processOrder = async ({
 
 const checkoutFromCart = async (userId, data) => {
     return await sequelize.transaction(async (transaction) => {
-        const { address_id, payment_method, note } = data;
+        const { address_id, payment_method, note, selected_item_ids } = data;
 
         if (payment_method && !Object.values(paymentMethods).includes(payment_method)) {
             throw new Error('Invalid payment method');
         }
+
+        if (!selected_item_ids || !selected_item_ids.length) throw new Error('No items selected');
 
         // Get cart
         const cart = await Cart.findOne({
@@ -94,11 +96,18 @@ const checkoutFromCart = async (userId, data) => {
         if (!cart || cart.items.length === 0) throw new Error('Cart is empty');
 
         // Get address
-        const address = await Address.findByPk(addressId, { transaction });
+        const address = await Address.findByPk(address_id, { transaction });
         if (!address) throw new Error('Address not found');
+        
+        // Filter items
+        const selectedItems = cart.items.filter(item =>
+            selected_item_ids.includes(item.id)
+        );
+
+        if (!selectedItems.length) throw new Error('Selected items not found');
 
         // Map items
-        const items = cart.items.map(item => ({
+        const items = selectedItems.map(item => ({
             variant: item.variant,
             quantity: item.quantity,
         }));
@@ -113,9 +122,14 @@ const checkoutFromCart = async (userId, data) => {
             transaction,
         });
 
+        const validItemIds = selectedItems.map(item => item.id);
+
         // Clear cart
         await CartItem.destroy({
-            where: { cart_id: cart.id },
+            where: {
+                id: validItemIds,
+                cart_id: cart.id
+            },
             transaction,
         });
 
