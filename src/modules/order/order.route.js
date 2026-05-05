@@ -3,17 +3,20 @@ const router = express.Router();
 
 const orderController = require('./order.controller');
 const { authenticate } = require('../../middleware/auth.middleware');
-const { validateCheckout } = require('./order.validate');
+const { 
+    validateCheckoutBuyNow,
+    validateCheckoutCart
+} = require('./order.validate');
 
 router.post('/checkout/cart',
     authenticate, 
-    validateCheckout, 
+    validateCheckoutCart, 
     orderController.checkoutFromCart
 );
 
 router.post('/checkout/buy-now',
     authenticate, 
-    validateCheckout, 
+    validateCheckoutBuyNow, 
     orderController.checkoutFromBuyNow
 );
 
