@@ -1,4 +1,5 @@
 const { sequelize } = require('../../models');
+const { Op } = require('sequelize');
 
 const Order = require('./order.model');
 const OrderItem = require('./orderItem.model');
@@ -174,7 +175,8 @@ const getMyOrders = async (userId, query) => {
         page = 1,
         limit = 10,
         status,
-        sort = "created_at:desc"
+        sort = "created_at:desc",
+        keyword,
     } = query;
     
     const pageNumber = Number(page) || 1;
@@ -184,6 +186,12 @@ const getMyOrders = async (userId, query) => {
     const where = { user_id: userId };
 
     if (status) where.status = status;
+
+    if (keyword) {
+        where.order_code = {
+            [Op.iLike]: `%${keyword}%`
+        };
+    }
 
     let orderSort = [['created_at', 'DESC']];
 
@@ -197,6 +205,7 @@ const getMyOrders = async (userId, query) => {
         limit: limitNumber,
         offset,
         order: orderSort,
+        distinct: true,
 
         include: [
             {
@@ -208,7 +217,7 @@ const getMyOrders = async (userId, query) => {
                     {
                         model: ProductVariant,
                         as: 'variant',
-                        attributes: ['id', 'price'],
+                        attributes: ['id', 'price', 'color', 'size', 'image_url'],
 
                         include: [
                             {
