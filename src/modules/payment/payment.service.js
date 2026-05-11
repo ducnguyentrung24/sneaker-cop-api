@@ -4,6 +4,9 @@ const moment = require('moment');
 
 const { sequelize } = require('../../models');
 const Order = require('../order/order.model');
+const OrderItem = require('../order/orderItem.model');
+const Cart = require('../cart/cart.model');
+const CartItem = require('../cart/cartItem.model');
 
 const { paymentStatus } = require('../../constants/paymentMethod.constant');
 const { orderStatus } = require('../../constants/orderStatus.constant');
@@ -63,7 +66,6 @@ const handleVnpayReturn = async (query) => {
         let vnp_Params = { ...query };
 
         const secureHash = vnp_Params["vnp_SecureHash"];
-
         delete vnp_Params["vnp_SecureHash"];
         delete vnp_Params["vnp_SecureHashType"];
 
@@ -80,13 +82,11 @@ const handleVnpayReturn = async (query) => {
         });
 
         if (!order) throw new Error('Order not found');
-        // idempotent check
         if (order.payment_status === paymentStatus.PAID) return order;
 
         // Validate amount
         const vnpAmount = Number(vnp_Params['vnp_Amount']);
         const expectedAmount = Math.round(order.final_price * 100);
-
         if (vnpAmount !== expectedAmount) throw new Error('Amount mismatch');
 
         // Update order
@@ -95,6 +95,31 @@ const handleVnpayReturn = async (query) => {
                 payment_status: paymentStatus.PAID,
                 status: orderStatus.PROCESSING,
             }, { transaction });
+
+            // Clear cart
+            const cart = await Cart.findOne({ 
+                where: {
+                    user_id: order.user_id
+                }, 
+                transaction,
+            });
+
+            if (cart) {
+                const orderItems = await OrderItem.findAll({
+                    where: { order_id: order.id },
+                    transaction,
+                });
+
+                const variantIds = orderItems.map(item => item.product_variant_id);
+
+                await CartItem.destroy({
+                    where: {
+                        cart_id: cart.id,
+                        product_variant_id: variantIds,
+                    },
+                    transaction,
+                });
+            }
         } else {
             await order.update({
                 payment_status: paymentStatus.FAILED,

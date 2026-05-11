@@ -124,14 +124,16 @@ const checkoutFromCart = async (userId, data) => {
 
         const validItemIds = selectedItems.map(item => item.id);
 
-        // Clear cart
-        await CartItem.destroy({
-            where: {
-                id: validItemIds,
-                cart_id: cart.id
-            },
-            transaction,
-        });
+        if (payment_method === paymentMethods.COD) {
+            // Clear cart
+            await CartItem.destroy({
+                where: {
+                    id: validItemIds,
+                    cart_id: cart.id
+                },
+                transaction,
+            });
+        }
 
         return order;
     });
