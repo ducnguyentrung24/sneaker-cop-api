@@ -21,7 +21,16 @@ const vnpayReturn = async (req, res) => {
     try {
         const result = await paymentService.handleVnpayReturn(req.query);
 
-        res.redirect(`${process.env.CLIENT_URL}/payment-result`);
+        const success = result.payment_status === "PAID";
+        if (success) {
+            return res.redirect(
+                `${process.env.CLIENT_URL}/checkout/success?orderCode=${result.order_code}&clearCart=true`
+            );
+        }
+
+        return res.redirect(
+            `${process.env.CLIENT_URL}/checkout/fail`
+        );
     } catch(error) {
         res.status(400).json({
             success: false,

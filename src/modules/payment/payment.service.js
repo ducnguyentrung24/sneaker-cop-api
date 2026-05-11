@@ -10,12 +10,14 @@ const { orderStatus } = require('../../constants/orderStatus.constant');
 const config = require('../../config/vnpay.config');
 
 const sortAndEncode = (params) => {
-    return Object.keys(params)
-        .sort()
-        .reduce((acc, key) => {
-            acc[key] = encodeURIComponent(params[key]).replace(/%20/g, '+');
-            return acc;
-        }, {});
+   let sorted = {};
+   let keys = Object.keys(params).sort();
+
+    keys.forEach(key => {
+        sorted[key] = encodeURIComponent(params[key]).replace(/%20/g, '+');
+    });
+
+    return sorted;
 };
 
 const createSignature = (params) => {
@@ -53,7 +55,7 @@ const createPaymentUrl = async (orderId) => {
 
     sorted.vnp_SecureHash = signature;
 
-    return `${config.vnpUrl}?${qs.stringify(sorted, { encode: true })}`;
+    return `${config.vnpUrl}?${qs.stringify(sorted, { encode: false })}`;
 };
 
 const handleVnpayReturn = async (query) => {
