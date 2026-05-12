@@ -8,6 +8,7 @@ const CartItem = require('../cart/cartItem.model');
 const Product = require('../product/product.model');
 const ProductVariant = require('../product/productVariant.model');
 const Address = require('../address/address.model');
+const OrderStatusLog = require('./orderStatusLog.model');
 
 const { paymentMethods } = require('../../constants/paymentMethod.constant');
 const { orderStatus } = require('../../constants/orderStatus.constant');
@@ -39,9 +40,20 @@ const processOrder = async ({
         payment_method: payment_method || paymentMethods.COD,
         note: note || null,
 
+        status: orderStatus.PENDING,
+
         total_price: 0,
         final_price: 0,
     }, { transaction });
+
+    await OrderStatusLog.create({
+        order_id: order.id,
+        from_status: null,
+        to_status: orderStatus.PENDING,
+        changed_by: userId,
+        note: 'Order created',
+    }, { transaction });
+
 
     for (const { variant, quantity } of items) {
         if (!variant) throw new Error('Variant not found');
@@ -125,8 +137,8 @@ const checkoutFromCart = async (userId, data) => {
 
         const validItemIds = selectedItems.map(item => item.id);
 
+        // Clear cart
         if (payment_method === paymentMethods.COD) {
-            // Clear cart
             await CartItem.destroy({
                 where: {
                     id: validItemIds,
@@ -293,6 +305,17 @@ const getOrderDetail = async (userId, orderId) => {
                     },
                 ],
             },
+            {
+                model: OrderStatusLog,
+                as: 'status_logs',
+                attributes: [
+                    'id',
+                    'from_status',
+                    'to_status',
+                    'note',
+                    'created_at',
+                ],
+            },
         ],
     });
 
@@ -326,6 +349,8 @@ const getOrderDetail = async (userId, orderId) => {
             image: item.variant.image_url,
         })),
 
+        status_logs: order.status_logs,
+
         total_price: order.total_price,
         shipping_fee: order.shipping_fee,
         final_price: order.final_price,  
@@ -351,7 +376,7 @@ const cancelOrder = async (userId, orderId) => {
 
         if (!order) throw new Error('Order not found');
         // Check status
-        if (order.status !== orderStatus.PENDING) throw new Error('Only pending orders can be cancelled');
+        if (order.status === orderStatus.PENDING && order.status === orderStatus.PROCESSING) throw new Error('Only pending and processing orders can be cancelled');
 
         // Restore stock
         for (const item of order.items) {
@@ -367,9 +392,19 @@ const cancelOrder = async (userId, orderId) => {
             }, { transaction });
         }
 
+        const oldStatus = order.status;
+
         // Update order status
         await order.update({
             status: orderStatus.CANCELLED,
+        }, { transaction });
+
+        await OrderStatusLog.create({
+            order_id: order.id,
+            from_status: oldStatus,
+            to_status: orderStatus.CANCELLED,
+            changed_by: userId,
+            note: 'Order cancelled by user',
         }, { transaction });
 
         return order;

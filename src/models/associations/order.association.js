@@ -1,5 +1,6 @@
 const Order = require('../../modules/order/order.model');
 const OrderItem = require('../../modules/order/orderItem.model');
+const OrderStatusLog = require('../../modules/order/orderStatusLog.model');
 const ProductVariant = require('../../modules/product/productVariant.model');
 const User = require('../../modules/user/user.model');
 
@@ -26,6 +27,17 @@ const initOrderAssociations = () => {
     OrderItem.belongsTo(Order, {
         foreignKey: 'order_id',
         onDelete: 'CASCADE',
+    });
+
+    // Order - OrderStatusLog (1 - N)
+    Order.hasMany(OrderStatusLog, {
+        foreignKey: 'order_id',
+        as: 'status_logs',
+        onDelete: 'CASCADE',
+    });
+
+    OrderStatusLog.belongsTo(Order, {
+        foreignKey: 'order_id',
     });
 
     // OrderItem - ProductVariant (N - 1)

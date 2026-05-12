@@ -12,6 +12,7 @@ require('../modules/cart/cart.model');
 require('../modules/cart/cartItem.model');
 require('../modules/order/order.model');
 require('../modules/order/orderItem.model');
+require('../modules/order/orderStatusLog.model');
 require('../modules/review/review.model');
 
 // load associations
