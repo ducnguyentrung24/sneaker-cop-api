@@ -17,6 +17,26 @@ const getReviewsByProduct = async (req, res) => {
     }
 };
 
+const getReviewByOrder = async (req, res) => {
+    try {
+        const data = await reviewService.getReviewByOrder(
+            req.user.id,
+            req.params.orderId
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Get review by order successfully',
+            data,
+        });
+    } catch(error) {
+        res.status(400).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
 const createReview = async (req, res) => {
     try {
         const review = await reviewService.createReview(req.user.id, req.body);
@@ -36,5 +56,6 @@ const createReview = async (req, res) => {
 
 module.exports = {
     getReviewsByProduct,
+    getReviewByOrder,
     createReview,
 };

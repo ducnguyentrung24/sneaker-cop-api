@@ -98,9 +98,29 @@ const getReviewsByProduct = async (productId, query = {}) => {
 
 };
 
+const getReviewByOrder = async (userId, orderId) => {
+    const review = await Review.findAll({
+        where: {
+            user_id: userId,
+            order_id: orderId,
+        },
+        attributes: [
+            'id',
+            'product_id',
+            'order_id',
+            'order_item_id',
+            'rating',
+            'comment',
+            'created_at'
+        ],
+    });
+
+    return review;
+};
+
 const createReview = async (userId, data) => {
     return await sequelize.transaction(async (transaction) => {
-        const { product_id, order_id, rating, comment } = data;
+        const { product_id, order_id, order_item_id, rating, comment } = data;
 
         // Check order
         const order = await Order.findOne({
@@ -113,7 +133,10 @@ const createReview = async (userId, data) => {
 
         // Check product in order
         const item = await OrderItem.findOne({
-            where: { order_id },
+            where: {
+                id: order_item_id,
+                order_id,
+            },
             include: {
                 model: ProductVariant,
                 as: 'variant',
@@ -127,7 +150,11 @@ const createReview = async (userId, data) => {
 
         // Check duplicate review
         const existingReview = await Review.findOne({
-            where: { user_id: userId, product_id, order_id },
+            where: { 
+                user_id: userId,
+                order_id,
+                order_item_id,
+            },
             transaction,
         });
 
@@ -138,6 +165,7 @@ const createReview = async (userId, data) => {
             user_id: userId,
             product_id,
             order_id,
+            order_item_id,
             rating,
             comment,
         }, { transaction });
@@ -148,5 +176,6 @@ const createReview = async (userId, data) => {
 
 module.exports = {
     getReviewsByProduct,
+    getReviewByOrder,
     createReview,
 };

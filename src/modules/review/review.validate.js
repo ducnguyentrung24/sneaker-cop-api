@@ -9,6 +9,10 @@ const reviewSchema = Joi.object({
         "any.required": "ID đơn hàng là bắt buộc",
         "number.base": "ID đơn hàng phải là một số",
     }),
+    order_item_id: Joi.number().integer().required().messages({
+        "any.required": "ID chi tiết đơn hàng là bắt buộc",
+        "number.base": "ID chi tiết đơn hàng phải là một số",
+    }),
     rating: Joi.number().integer().min(1).max(5).required().messages({
         "any.required": "Đánh giá là bắt buộc",
         "number.base": "Đánh giá phải là một số",

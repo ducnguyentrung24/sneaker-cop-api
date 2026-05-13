@@ -7,6 +7,11 @@ const { validateCreateReview } = require('./review.validate');
 
 router.get('/product/:id', reviewController.getReviewsByProduct);
 
+router.get('/order/:orderId',
+    authenticate,
+    reviewController.getReviewByOrder
+);
+
 router.post('/',
     authenticate,
     validateCreateReview,
