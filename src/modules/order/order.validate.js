@@ -47,7 +47,25 @@ const checkoutCartSchema = Joi.object({
     note: Joi.string().allow('').optional().messages({
         'string.base': 'Note must be a string',
     }),
-}); 
+});
+
+const checkoutReorderSchema = Joi.object({
+    order_id: Joi.number().required().messages({
+        'any.required': 'Order ID is required',
+    }),
+    address_id: Joi.number().required().messages({
+        'any.required': 'Address ID is required',
+    }),
+    payment_method: Joi.string()
+        .valid(...Object.values(paymentMethods))
+        .optional()
+        .messages({
+            'any.only': 'Invalid payment method',
+        }),
+    note: Joi.string().allow('').optional().messages({
+        'string.base': 'Note must be a string',
+    }),
+});
 
 const validateCheckoutBuyNow = (req, res, next) => {
     const { error, value } = checkoutBuyNowSchema.validate(req.body, {
@@ -85,7 +103,26 @@ const validateCheckoutCart = (req, res, next) => {
     next();
 };
 
+const validateCheckoutReorder = (req, res, next) => {
+    const { error, value } = checkoutReorderSchema.validate(req.body, {
+        abortEarly: false,
+        stripUnknown: true,
+    });
+
+    if (error) {
+        return res.status(400).json({
+            success: false,
+            message: error.details[0].message,
+        });
+    }
+
+    req.body = value;
+
+    next();
+};
+
 module.exports = {
     validateCheckoutBuyNow,
-    validateCheckoutCart
+    validateCheckoutCart,
+    validateCheckoutReorder,
 };

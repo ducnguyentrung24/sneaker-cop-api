@@ -48,7 +48,7 @@ const processOrder = async ({
 
     await OrderStatusLog.create({
         order_id: order.id,
-        from_status: null,
+        from_status: orderStatus.PENDING,
         to_status: orderStatus.PENDING,
         changed_by: userId,
         note: 'Order created',
@@ -182,6 +182,46 @@ const checkoutFromBuyNow = async (userId, data) => {
     });
 };
 
+const checkoutFromReorder = async (userId, data) => {
+    return await sequelize.transaction(async (transaction) => {
+        const { items, address_id, payment_method, note } = data;
+
+        if (payment_method && !Object.values(paymentMethods).includes(payment_method)) {
+            throw new Error('Invalid payment method');
+        }
+
+        if (!items || !items.length) throw new Error('No items to reorder');
+
+        const address = await Address.findByPk(address_id, { transaction });
+        if (!address) throw new Error('Address not found');
+
+        const orderItems = [];
+        for (const item of items) {
+            const { variant_id, quantity } = item;
+
+            if (!variant_id) throw new Error('Variant ID is required');
+            if (!quantity || quantity <= 0) throw new Error('Invalid quantity');
+
+            const variant = await ProductVariant.findByPk(variant_id, { transaction });
+            if (!variant) throw new Error('Product variant not found');
+            if (variant.stock < quantity) throw new Error('Out of stock');
+
+            orderItems.push({ variant, quantity });
+        }
+
+        const order = await processOrder({
+            userId,
+            items: orderItems,
+            address,
+            payment_method,
+            note,
+            transaction,
+        });
+
+        return order;
+    });
+};
+
 const getMyOrders = async (userId, query) => {
     const {
         page = 1,
@@ -254,6 +294,8 @@ const getMyOrders = async (userId, query) => {
         total_price: order.final_price,
 
         items: order.items.map(item => ({
+            variant_id: item.variant.id,
+
             product_id: item.variant.product.id,
             product_name: item.variant.product.name,
             color: item.variant.color,
@@ -339,6 +381,8 @@ const getOrderDetail = async (userId, orderId) => {
 
         items: order.items.map(item => ({
             id: item.id,
+            variant_id: item.variant.id,
+
             quantity: item.quantity,
             price: item.price,
 
@@ -376,7 +420,7 @@ const cancelOrder = async (userId, orderId) => {
 
         if (!order) throw new Error('Order not found');
         // Check status
-        if (order.status === orderStatus.PENDING && order.status === orderStatus.PROCESSING) throw new Error('Only pending and processing orders can be cancelled');
+        if (order.status !== orderStatus.PENDING && order.status !== orderStatus.PROCESSING) throw new Error('Only pending and processing orders can be cancelled');
 
         // Restore stock
         for (const item of order.items) {
@@ -414,6 +458,7 @@ const cancelOrder = async (userId, orderId) => {
 module.exports = {
     checkoutFromCart,
     checkoutFromBuyNow,
+    checkoutFromReorder,
     getMyOrders,
     getOrderDetail,
     cancelOrder,

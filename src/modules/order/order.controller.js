@@ -34,6 +34,23 @@ const checkoutFromBuyNow = async (req, res) => {
     }
 };
 
+const checkoutFromReorder = async (req, res) => {
+    try {
+        const order = await orderService.checkoutFromReorder(req.user.id, req.body);
+
+        res.status(200).json({
+            success: true,
+            message: "Checkout reorder successfull",
+            data: order
+        });
+    } catch(error) {
+        res.status(400).json({
+            success: false,
+            message: error.message,
+        });        
+    }
+};
+
 const getMyOrders = async (req, res) => {
     try {
         const data = await orderService.getMyOrders(req.user.id, req.query);
@@ -88,6 +105,7 @@ const cancelOrder = async (req, res) => {
 module.exports = {
     checkoutFromCart,
     checkoutFromBuyNow,
+    checkoutFromReorder,
     getMyOrders,
     getOrderDetail,
     cancelOrder,
