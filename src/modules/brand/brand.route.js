@@ -1,20 +1,22 @@
 const express = require("express");
 const router = express.Router();
 
-const { ROLES } = require("../../constants/role.constant");
 const brandController = require("./brand.controller");
+
+const { validateBrand } = require("./brand.validate");
+
 const {
     authenticate,
     authorizeRoles,
 } = require("../../middleware/auth.middleware");
-const { validateBrand } = require("./brand.validate");
+const { ROLES } = require("../../constants/role.constant");
 
-// PUBLIC
+// Public
 router.get("/", brandController.getBrands);
 
 router.get("/:id", brandController.getBrandById);
 
-// ADMIN
+// Admin
 router.post("/",
     authenticate,
     authorizeRoles(ROLES.ADMIN),
@@ -22,7 +24,7 @@ router.post("/",
     brandController.createBrand
 );
 
-router.put("/:id",
+router.patch("/:id",
     authenticate,
     authorizeRoles(ROLES.ADMIN),
     validateBrand,

@@ -2,13 +2,19 @@ const express = require('express');
 const router = express.Router();
 
 const userController = require('./user.controller');
+
 const {
     validateUpdateProfile,
     validateChangePassword,
+    validateCreateUser,
+    validateUpdateUser,
+    validateUpdateUserStatus,
 } = require('./user.validate');
 
-const { authenticate } = require('../../middleware/auth.middleware');
+const { authenticate, authorizeRoles } = require('../../middleware/auth.middleware');
+const { ROLES } = require('../../constants/role.constant');
 
+// Public
 router.get('/profile', authenticate, userController.getProfile);
 
 router.patch('/profile',
@@ -22,5 +28,34 @@ router.patch('/change-password',
     validateChangePassword,
     userController.changePassword
 );
+
+// Admin
+router.get('/users', 
+    authenticate, 
+    authorizeRoles(ROLES.ADMIN),
+    userController.getAllUsers
+);
+
+router.post('/users',
+    authenticate,
+    authorizeRoles(ROLES.ADMIN),
+    validateCreateUser,
+    userController.createUser
+);
+
+router.patch('/users/:id/status',
+    authenticate,
+    authorizeRoles(ROLES.ADMIN),
+    validateUpdateUserStatus,
+    userController.updateUserStatus
+);
+
+router.patch('/users/:id',
+    authenticate,
+    authorizeRoles(ROLES.ADMIN),
+    validateUpdateUser,
+    userController.updateUser
+);
+
 
 module.exports = router;

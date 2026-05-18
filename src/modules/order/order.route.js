@@ -2,13 +2,17 @@ const express = require('express');
 const router = express.Router();
 
 const orderController = require('./order.controller');
-const { authenticate } = require('../../middleware/auth.middleware');
+
 const { 
     validateCheckoutBuyNow,
     validateCheckoutCart,
     validateCheckoutReorder
 } = require('./order.validate');
 
+const { authenticate, authorizeRoles } = require('../../middleware/auth.middleware');
+const { ROLES } = require('../../constants/role.constant');
+
+// Public
 router.post('/checkout/cart',
     authenticate, 
     validateCheckoutCart, 
@@ -31,5 +35,24 @@ router.get('/', authenticate, orderController.getMyOrders);
 router.get('/:id', authenticate, orderController.getOrderDetail);
 
 router.patch('/:id/cancel', authenticate, orderController.cancelOrder);
+
+// Admin
+router.get('/orders',
+    authenticate,
+    authorizeRoles(ROLES.ADMIN),
+    orderController.getAllOrders
+);
+
+router.get('/orders/:id',
+    authenticate,
+    authorizeRoles(ROLES.ADMIN),
+    orderController.getAdminOrderDetail
+);
+
+router.patch('/orders/:id/status',
+    authenticate,
+    authorizeRoles(ROLES.ADMIN),
+    orderController.updateOrderStatus
+);
 
 module.exports = router;

@@ -34,9 +34,6 @@ app.use('/orders', orderRoutes);
 app.use('/payment', paymentRoutes);
 app.use('/reviews', reviewRoutes);
 
-const adminRoutes = require('./modules/admin/admin.route');
-app.use('/admin', adminRoutes);
-
 // Test
 app.get('/', (req, res) => {
   res.send('Welcome to the Sneaker Cop API!');

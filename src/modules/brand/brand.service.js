@@ -38,6 +38,7 @@ const getBrandById = async (id) => {
     return brand;
 };
 
+// Admin
 const createBrand = async (data) => {
     const { name } = data;
 

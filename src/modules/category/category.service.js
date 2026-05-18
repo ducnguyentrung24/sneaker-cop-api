@@ -36,6 +36,7 @@ const getCategoryById = async (id) => {
     return category;
 };
 
+// Admin
 const createCategory = async (data) => {
     const { name } = data;
 

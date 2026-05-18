@@ -1,20 +1,22 @@
 const express = require('express');
 const router = express.Router();
 
-const { ROLES } = require("../../constants/role.constant");
 const categoryController = require("./category.controller");
+const { ROLES } = require("../../constants/role.constant");
+
+const { validateCategory } = require("./category.validate");
+
 const {
     authenticate,
     authorizeRoles,
 } = require("../../middleware/auth.middleware");
-const { validateCategory } = require("./category.validate");
 
-// PUBLIC
+// Public
 router.get("/", categoryController.getCategories);
 
 router.get("/:id", categoryController.getCategoryById);
 
-// ADMIN
+// Admin
 router.post("/",
     authenticate,
     authorizeRoles(ROLES.ADMIN),
@@ -22,7 +24,7 @@ router.post("/",
     categoryController.createCategory
 );
 
-router.put("/:id",
+router.patch("/:id",
     authenticate,
     authorizeRoles(ROLES.ADMIN),
     validateCategory,
