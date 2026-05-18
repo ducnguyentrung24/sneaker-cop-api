@@ -30,20 +30,20 @@ router.patch('/change-password',
 );
 
 // Admin
-router.get('/users', 
+router.get('/', 
     authenticate, 
     authorizeRoles(ROLES.ADMIN),
     userController.getAllUsers
 );
 
-router.post('/users',
+router.post('/',
     authenticate,
     authorizeRoles(ROLES.ADMIN),
     validateCreateUser,
     userController.createUser
 );
 
-router.patch('/users/:id/status',
+router.patch('/:id/status',
     authenticate,
     authorizeRoles(ROLES.ADMIN),
     validateUpdateUserStatus,

@@ -22,6 +22,7 @@ const cartRoutes = require('./modules/cart/cart.route');
 const orderRoutes = require('./modules/order/order.route');
 const paymentRoutes = require('./modules/payment/payment.route');
 const reviewRoutes = require('./modules/review/review.route');
+const dashboardRoutes = require('./modules/dashboard/dashboard.route');
 
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
@@ -33,6 +34,7 @@ app.use('/addresses', addressRoutes);
 app.use('/orders', orderRoutes);
 app.use('/payment', paymentRoutes);
 app.use('/reviews', reviewRoutes);
+app.use('/dashboard', dashboardRoutes);
 
 // Test
 app.get('/', (req, res) => {
