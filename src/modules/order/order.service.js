@@ -552,6 +552,99 @@ const getAllOrders = async (query) => {
     };
 };
 
+const getAdminOrderDetail = async (orderId) => {
+    const order = await Order.findByPk(orderId, {
+        include: [
+            {
+                model: OrderItem,
+                as: 'items',
+                attributes: ['id', 'product_variant_id', 'quantity', 'price'],
+                include: [
+                    {
+                        model: ProductVariant,
+                        as: 'variant',
+                        attributes: ['id', 'color', 'size', 'image_url', 'price'],
+                        include: [
+                            {
+                                model: Product,
+                                as: 'product',
+                                attributes: ['id', 'thumbnail', 'name'],
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
+                model: OrderStatusLog,
+                as: 'status_logs',
+                attributes: ['id', 'from_status', 'to_status', 'changed_by', 'note', 'created_at'],
+            },
+        ],
+        order: [
+            [
+                { model: OrderStatusLog, as: 'status_logs' },
+                'created_at',
+                'ASC',
+            ],
+        ],
+    });
+
+    if (!order) throw new Error('Order not found');
+
+    const formatted = {
+        id: order.id,
+        order_code: order.order_code,
+
+        user_id: order.user_id,
+        receiver_name: order.receiver_name,
+        phone: order.phone,
+        city: order.city,
+        ward: order.ward,
+        detail_address: order.detail_address,
+
+        note: order.note,
+
+        payment_method: order.payment_method,
+        payment_status: order.payment_status,
+
+        status: order.status,
+
+        total_price: Number(order.total_price),
+        shipping_fee: Number(order.shipping_fee),
+        final_price: Number(order.final_price),
+
+        created_at: order.created_at,
+
+        items: order.items.map(item => ({
+            id: item.id,
+
+            product_variant_id: item.product_variant_id,
+
+            product_id: item.variant?.product?.id,
+            product_name: item.variant?.product?.name,
+
+            color: item.variant?.color,
+            size: item.variant?.size,
+            image: item.variant?.image_url,
+
+            quantity: item.quantity,
+            price: item.price,
+            subtotal: Number(item.price) * item.quantity,
+        })),
+
+        status_logs: order.status_logs.map(log => ({
+            id: log.id,
+            from_status: log.from_status,
+            to_status: log.to_status,
+            changed_by: log.changed_by,
+            note: log.note,
+            created_at: log.created_at,
+        })),
+    };
+
+    return formatted;
+};
+
 const updateOrderStatus = async (orderId, adminId, data) => {
     return await sequelize.transaction(async (transaction) => {
         const { status, note } = data;
@@ -608,5 +701,6 @@ module.exports = {
     getOrderDetail,
     cancelOrder,
     getAllOrders,
+    getAdminOrderDetail,
     updateOrderStatus,
 };

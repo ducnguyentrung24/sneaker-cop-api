@@ -12,6 +12,12 @@ router.get('/orders',
     orderController.getAllOrders
 );
 
+router.get('/orders/:id',
+    authenticate,
+    authorizeRoles(ROLES.ADMIN),
+    orderController.getAdminOrderDetail
+);
+
 router.patch('/orders/:id/status',
     authenticate,
     authorizeRoles(ROLES.ADMIN),

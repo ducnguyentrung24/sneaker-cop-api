@@ -120,6 +120,23 @@ const getAllOrders = async (req, res) => {
     }
 };
 
+const getAdminOrderDetail = async (req, res) => {
+    try {
+        const order = await orderService.getAdminOrderDetail(req.params.id);
+
+        res.status(200).json({
+            success: true,
+            message: 'Get admin order detail successfully',
+            data: order
+        })
+    } catch(error) {
+        return res.status(400).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
 const updateOrderStatus = async (req, res) => {
     try {
         const order = await orderService.updateOrderStatus(
@@ -153,5 +170,6 @@ module.exports = {
     getOrderDetail,
     cancelOrder,
     getAllOrders,
+    getAdminOrderDetail,
     updateOrderStatus,
 };
