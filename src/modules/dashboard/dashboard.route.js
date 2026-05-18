@@ -12,4 +12,10 @@ router.get('/',
     dashboardController.getDashboardSummary
 );
 
+router.get('/revenue-statistics',
+    authenticate,
+    authorizeRoles(ROLES.ADMIN),
+    dashboardController.getRevenueStatistics
+);
+
 module.exports = router;
