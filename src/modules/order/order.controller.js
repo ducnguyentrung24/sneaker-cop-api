@@ -102,6 +102,24 @@ const cancelOrder = async (req, res) => {
     }
 };
 
+// Admin
+const getAllOrders = async (req, res) => {
+    try {
+        const result = await orderService.getAllOrders(req.query);
+
+        res.status(200).json({
+            success: true,
+            message: 'Get all orders successful',
+            data: result,
+        });
+    } catch(error) {
+        return res.status(400).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
 const updateOrderStatus = async (req, res) => {
     try {
         const order = await orderService.updateOrderStatus(
@@ -134,5 +152,6 @@ module.exports = {
     getMyOrders,
     getOrderDetail,
     cancelOrder,
+    getAllOrders,
     updateOrderStatus,
 };

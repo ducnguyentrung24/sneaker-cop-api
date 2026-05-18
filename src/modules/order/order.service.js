@@ -457,11 +457,105 @@ const cancelOrder = async (userId, orderId) => {
 };
 
 // Admin
+const getAllOrders = async (query) => {
+    const {
+        page = 1,
+        limit = 10,
+        status,
+        keyword,
+        from_date,
+        to_date,
+        sort = "created_at:desc",
+    } = query;
+
+    const pageNumber = Number(page) || 1;
+    const limitNumber = Number(limit) || 10;
+    const offset = (pageNumber - 1) * limitNumber;
+
+    const where = {};
+
+    if (status) where.status = status;
+
+    if (keyword) {
+        where[Op.or] = [
+            {
+                order_code: {
+                    [Op.iLike]: `%${keyword}%`
+                },
+            },
+            {
+                receiver_name: {
+                    [Op.iLike]: `%${keyword}%`
+                },
+            },
+        ]
+    }
+
+    if (from_date || to_date) {
+        where.created_at = {};
+
+        if (from_date) where.created_at[Op.gte] = new Date(from_date);
+        if (to_date) {
+            const endDate = new Date(to_date);
+            endDate.setHours(23, 59, 59, 999);
+            where.created_at[Op.lte] = endDate;
+        }
+    }
+
+    let orderSort = [['created_at', 'DESC']];
+
+    if (sort) {
+        const [field, direction] = sort.split(':');
+        orderSort = [[field, direction.toUpperCase()]];
+    }
+
+    const { count, rows } = await Order.findAndCountAll({
+        where,
+
+        attributes: [
+            'id',
+            'order_code',
+            'receiver_name',
+            'final_price',
+            'payment_status',
+            'status',
+            'created_at',
+        ],
+
+        limit: limitNumber,
+        offset,
+        order: orderSort,
+    });
+
+    const data = rows.map(order => ({
+        id: order.id,
+        order_code: order.order_code,
+        receiver_name: order.receiver_name,
+        order_date: order.created_at,
+        total_price: order.final_price,
+        payment_status: order.payment_status,
+        status: order.status,
+    }));
+
+    const totalPages = Math.ceil(count / limitNumber);
+
+    return {
+        data,
+        pagination: {
+            total: count,
+            page: pageNumber,
+            limit: limitNumber,
+            totalPages,
+            hasNext: pageNumber < totalPages,
+            hasPrev: pageNumber > 1,
+        },
+    };
+};
+
 const updateOrderStatus = async (orderId, adminId, data) => {
     return await sequelize.transaction(async (transaction) => {
         const { status, note } = data;
 
-        console.log(orderId);
         const order = await Order.findByPk(orderId, {
             include: {
                 model: OrderItem,
@@ -469,8 +563,6 @@ const updateOrderStatus = async (orderId, adminId, data) => {
             },
             transaction,
         });
-
-        console.log(order);
 
         if (!order) throw new Error('Order not found');
 
@@ -515,5 +607,6 @@ module.exports = {
     getMyOrders,
     getOrderDetail,
     cancelOrder,
+    getAllOrders,
     updateOrderStatus,
 };
