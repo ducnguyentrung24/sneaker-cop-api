@@ -12,6 +12,7 @@ const OrderStatusLog = require('./orderStatusLog.model');
 
 const { paymentMethods } = require('../../constants/paymentMethod.constant');
 const { orderStatus } = require('../../constants/orderStatus.constant');
+const { ORDER_FLOW } = require('../../constants/orderFlow.constant');
 
 const genrateOrderCode = () => {
     return `ORD-${Date.now()}`;
@@ -455,6 +456,58 @@ const cancelOrder = async (userId, orderId) => {
     });
 };
 
+// Admin
+const updateOrderStatus = async (orderId, adminId, data) => {
+    return await sequelize.transaction(async (transaction) => {
+        const { status, note } = data;
+
+        console.log(orderId);
+        const order = await Order.findByPk(orderId, {
+            include: {
+                model: OrderItem,
+                as: 'items',
+            },
+            transaction,
+        });
+
+        console.log(order);
+
+        if (!order) throw new Error('Order not found');
+
+        const currentStatus = order.status;
+
+        const allowedStatuses = ORDER_FLOW[currentStatus] || [];
+        if (!allowedStatuses.includes(status)) throw new Error(`Cannot change status from ${currentStatus} to ${status}`);
+
+        if (status === orderStatus.CANCELLED) {
+            for (const item of order.items) {
+                const variant = await ProductVariant.findByPk(
+                    item.product_variant_id,
+                    { transaction }
+                );
+
+                if (!variant) continue;
+
+                await variant.update({
+                    stock: variant.stock + item.quantity,
+                }, { transaction });
+            }
+        }
+
+        await order.update({ status }, { transaction });
+
+        await OrderStatusLog.create({
+            order_id: order.id,
+            from_status: currentStatus,
+            to_status: status,
+            changed_by: adminId,
+            note: note || `Status changed to ${status} by admin`,
+        }, { transaction });
+
+        return order;
+    });
+};
+
 module.exports = {
     checkoutFromCart,
     checkoutFromBuyNow,
@@ -462,4 +515,5 @@ module.exports = {
     getMyOrders,
     getOrderDetail,
     cancelOrder,
+    updateOrderStatus,
 };

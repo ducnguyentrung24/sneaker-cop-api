@@ -102,6 +102,31 @@ const cancelOrder = async (req, res) => {
     }
 };
 
+const updateOrderStatus = async (req, res) => {
+    try {
+        const order = await orderService.updateOrderStatus(
+            req.params.id,
+            req.user.id,
+            req.body,
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Order status updated successfully',
+            data: {
+                id: order.id,
+                order_code: order.order_code,
+                status: order.status,
+            }
+        });
+    } catch(error) {
+        return res.status(400).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
 module.exports = {
     checkoutFromCart,
     checkoutFromBuyNow,
@@ -109,4 +134,5 @@ module.exports = {
     getMyOrders,
     getOrderDetail,
     cancelOrder,
+    updateOrderStatus,
 };
