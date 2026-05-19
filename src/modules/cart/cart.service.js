@@ -5,6 +5,9 @@ const CartItem = require("./cartItem.model");
 const ProductVariant = require("../product/productVariant.model");
 const Product = require("../product/product.model");
 
+const behaviorService = require("../behavior/behavior.service");
+const { behaviorTypes } = require('../../constants/behavior.constant');
+
 const getCart = async (userId) => {
     // Get cart with items and product details
     const cart = await Cart.findOne({
@@ -134,6 +137,13 @@ const addToCart = async (userId, data) => {
             }, { transaction});
         }
 
+        // Track behavior to cart behavior
+        await behaviorService.trackBehavior(
+            userId,
+            variant.product_id,
+            behaviorTypes.CART
+        );
+        
         return cartItem;
     });
 };

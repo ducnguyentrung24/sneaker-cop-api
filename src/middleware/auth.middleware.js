@@ -51,7 +51,30 @@ const authorizeRoles = (...roles) => {
     }
 }
 
+const optionalAuthenticate = (req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) return next();
+
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verifyToken(token);
+        req.user = decoded;
+
+        if (req.user.is_active === false) {
+            return res.status(403).json({
+                success: false,
+                message: "Your account has been locked. Please contact support.",
+            });
+        }
+
+        next();
+    } catch(error) {
+        return next();
+    }
+};
+
 module.exports = {
     authenticate,
     authorizeRoles,
+    optionalAuthenticate,
 };

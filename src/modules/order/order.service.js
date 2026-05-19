@@ -14,6 +14,9 @@ const { paymentMethods } = require('../../constants/paymentMethod.constant');
 const { orderStatus } = require('../../constants/orderStatus.constant');
 const { ORDER_FLOW } = require('../../constants/orderFlow.constant');
 
+const behaviorService = require("../behavior/behavior.service");
+const { behaviorTypes } = require('../../constants/behavior.constant');
+
 const genrateOrderCode = () => {
     return `ORD-${Date.now()}`;
 };
@@ -73,6 +76,13 @@ const processOrder = async ({
         await variant.update({
             stock: variant.stock - quantity,
         }, { transaction });
+
+        // Track behavior to purchase behavior
+        await behaviorService.trackBehavior(
+            userId,
+            variant.product_id,
+            behaviorTypes.PURCHASE
+        );
     }
 
     await order.update({

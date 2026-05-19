@@ -1,4 +1,3 @@
-const { get } = require('./dashboard.route');
 const dashboardService = require('./dashboard.service');
 
 const getDashboardSummary = async (req, res) => {

@@ -6,16 +6,19 @@ const productController = require('./product.controller');
 const {
     authenticate,
     authorizeRoles,
+    optionalAuthenticate
 } = require("../../middleware/auth.middleware");
 const { validateProduct } = require("./product.validate");
 
-// PUBLIC
+// Public
 router.get("/", productController.getProducts);
 
-router.get("/:id", productController.getProductById);
+router.get("/:id",
+    optionalAuthenticate,
+    productController.getProductById
+);
 
-
-// ADMIN
+// Admin
 router.post("/",
     authenticate,
     authorizeRoles(ROLES.ADMIN),

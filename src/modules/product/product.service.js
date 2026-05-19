@@ -6,6 +6,9 @@ const ProductImage = require("./productImage.model");
 const ProductVariant = require("./productVariant.model");
 const Review = require("../review/review.model");
 
+const behaviorService = require("../behavior/behavior.service");
+const { behaviorTypes } = require('../../constants/behavior.constant');
+
 const paresArray = (value) => {
     if (!value) return [];
     if (Array.isArray(value)) return value.map(Number);
@@ -134,7 +137,7 @@ const getProducts = async (query) => {
     };
 };
 
-const getProductById = async (productId) => {
+const getProductById = async (productId, userId) => {
     const product = await Product.findByPk(productId, {
         include: [
             { association: 'images' },
@@ -142,6 +145,14 @@ const getProductById = async (productId) => {
         ]
     });
     if (!product) throw new Error("Product not found");
+
+    if (userId) {
+        await behaviorService.trackBehavior(
+            userId,
+            product.id,
+            behaviorTypes.VIEW
+        );
+    }
 
     return product;
 };

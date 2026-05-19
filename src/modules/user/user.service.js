@@ -1,6 +1,7 @@
+const { Op } = require('sequelize');
+
 const User = require('./user.model');
 const { hashPassword, comparePassword } = require('../../utils/hash');
-const { get } = require('./user.route');
 
 const getProfile = async (userId) => {
     const user = await User.findByPk(userId, {
