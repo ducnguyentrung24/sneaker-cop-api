@@ -23,6 +23,7 @@ const orderRoutes = require('./modules/order/order.route');
 const paymentRoutes = require('./modules/payment/payment.route');
 const reviewRoutes = require('./modules/review/review.route');
 const dashboardRoutes = require('./modules/dashboard/dashboard.route');
+const recommendationRoutes = require('./modules/recommendation/recommendation.route');
 
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
@@ -35,6 +36,7 @@ app.use('/orders', orderRoutes);
 app.use('/payment', paymentRoutes);
 app.use('/reviews', reviewRoutes);
 app.use('/dashboard', dashboardRoutes);
+app.use('/recommendations', recommendationRoutes);
 
 // Test
 app.get('/', (req, res) => {
