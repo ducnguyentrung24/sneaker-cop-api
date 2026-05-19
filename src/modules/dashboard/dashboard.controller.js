@@ -1,3 +1,4 @@
+const { get } = require('./dashboard.route');
 const dashboardService = require('./dashboard.service');
 
 const getDashboardSummary = async (req, res) => {
@@ -85,10 +86,46 @@ const getPaymentStatistics = async (req, res) => {
     }
 };
 
+const getCategoryStatistics = async (req, res) => {
+    try {
+        const data = await dashboardService.getCategoryStatistics();
+
+        res.status(200).json({
+            success: true,
+            message: 'Get category statistics successfully',
+            data,
+        });
+    } catch(error) {
+        return res.status(400).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
+const getBrandStatistics = async (req, res) => {
+    try {
+        const data = await dashboardService.getBrandStatistics();
+
+        res.status(200).json({
+            success: true,
+            message: 'Get brand statistics successfully',
+            data,
+        });
+    } catch(error) {
+        return res.status(400).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
 module.exports = {
     getDashboardSummary,
     getRevenueStatistics,
     getTopProducts,
     getLowStockProducts,
     getPaymentStatistics,
+    getCategoryStatistics,
+    getBrandStatistics,
 };

@@ -5,6 +5,8 @@ const Product = require('../product/product.model');
 const ProductVariant = require('../product/productVariant.model');
 const Order = require('../order/order.model');
 const OrderItem = require('../order/orderItem.model');
+const Category = require('../category/category.model');
+const Brand = require('../brand/brand.model');
 
 const { orderStatus } = require('../../constants/orderStatus.constant');
 
@@ -171,7 +173,7 @@ const getLowStockProducts = async (query) => {
         where: {
             stock: { [Op.lte]: thresholdNumber },
         },
-        attributes: ['id', 'product_id', 'color', 'color', 'size', 'stock', 'image_url'],
+        attributes: ['id', 'product_id', 'color', 'size', 'stock', 'image_url'],
         include: [
             {
                 model: Product,
@@ -239,10 +241,106 @@ const getPaymentStatistics = async () => {
     return statistics;
 };
 
+const getCategoryStatistics = async () => {
+    const products = await Product.findAll({
+        attributes: ['id', 'category_id'],
+        include: [
+            {
+                model: Category,
+                as: 'category',
+                attributes: ['id', 'name'],
+            },
+        ],
+    });
+
+    const totalProducts = products.length;
+
+    const statistics = {};
+
+    products.forEach(product => {
+        const category = product.category;
+        if (!category) return;
+        
+        const categoryId = category.id;
+
+        if (!statistics[categoryId]) {
+            statistics[categoryId] = {
+                category_id: category.id,
+                category_name: category.name,
+                product_count: 0,
+                percent: 0,
+            };
+        }
+        statistics[categoryId].product_count += 1;
+    });
+
+    const categories = Object.values(statistics).map(item => ({
+        ...item,
+        percent: totalProducts
+            ? Math.round((item.product_count / totalProducts) * 10000)
+            : 0,
+    }));
+
+    return {
+        categories: categories.length,
+        total_products: totalProducts,
+        categories,
+    }
+};
+
+const getBrandStatistics = async () => {
+    const products = await Product.findAll({
+        attributes: ['id', 'brand_id'],
+        include: [
+            {
+                model: Brand,
+                as: 'brand',
+                attributes: ['id', 'name'],
+            },
+        ],
+    });
+
+    const totalProducts = products.length;
+
+    const statistics = {};
+
+    products.forEach(product => {
+        const brand = product.brand;
+        if (!brand) return;
+
+        const brandId = brand.id;
+        
+        if (!statistics[brandId]) {
+            statistics[brandId] = {
+                brand_id: brand.id,
+                brand_name: brand.name,
+                product_count: 0,
+                percent: 0,
+            };
+        }
+        statistics[brandId].product_count += 1;
+    });
+
+    const brands = Object.values(statistics).map(item => ({
+        ...item,
+        percent: totalProducts
+            ? Math.round((item.product_count / totalProducts) * 10000)
+            : 0,
+    }));
+
+    return {
+        total_brands: brands.length,
+        total_products: totalProducts,
+        brands,
+    };
+};
+
 module.exports = {
     getDashboardSummary,
     getRevenueStatistics,
     getTopProducts,
     getLowStockProducts,
     getPaymentStatistics,
+    getCategoryStatistics,
+    getBrandStatistics,
 };

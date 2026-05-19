@@ -1,6 +1,8 @@
 const Product = require('../../modules/product/product.model');
 const ProductImage = require('../../modules/product/productImage.model');
 const ProductVariant = require('../../modules/product/productVariant.model');
+const Category = require('../../modules/category/category.model');
+const Brand = require('../../modules/brand/brand.model');
 
 const initProductAssociations = () => {
     // Product - ProductImage (1 - N)
@@ -27,6 +29,28 @@ const initProductAssociations = () => {
         foreignKey: 'product_id',
         as: 'product',
         onDelete: 'CASCADE',
+    });
+
+    // Product - Category (N - 1)
+    Category.hasMany(Product, {
+        foreignKey: 'category_id',
+        as: 'products',
+    });
+
+    Product.belongsTo(Category, {
+        foreignKey: 'category_id',
+        as: 'category',
+    });
+
+    // Product - Brand (N - 1)
+    Brand.hasMany(Product, {
+        foreignKey: 'brand_id',
+        as: 'products',
+    });
+
+    Product.belongsTo(Brand, {
+        foreignKey: 'brand_id',
+        as: 'brand',
     });
 };
 

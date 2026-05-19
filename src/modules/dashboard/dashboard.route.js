@@ -36,4 +36,16 @@ router.get('/payment-statistics',
     dashboardController.getPaymentStatistics
 );
 
+router.get('/category-statistics',
+    authenticate,
+    authorizeRoles(ROLES.ADMIN),
+    dashboardController.getCategoryStatistics
+);
+
+router.get('/brand-statistics',
+    authenticate,
+    authorizeRoles(ROLES.ADMIN),
+    dashboardController.getBrandStatistics
+);
+
 module.exports = router;
