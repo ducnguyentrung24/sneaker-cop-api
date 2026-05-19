@@ -18,4 +18,10 @@ router.get('/revenue-statistics',
     dashboardController.getRevenueStatistics
 );
 
+router.get('/top-products',
+    authenticate,
+    authorizeRoles(ROLES.ADMIN),
+    dashboardController.getTopProducts
+);
+
 module.exports = router;
