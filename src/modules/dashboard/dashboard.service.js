@@ -192,9 +192,57 @@ const getLowStockProducts = async (query) => {
     }));
 };
 
+const getPaymentStatistics = async () => {
+    const orders = await Order.findAll({
+        attributes: [
+            'id',
+            'payment_method',
+            'payment_status',
+        ]
+    });
+
+    const statistics = {
+        COD: {
+            total: 0,
+            PAID: 0,
+            UNPAID: 0,
+            FAILED: 0,
+        },
+        VNPAY: {
+            total: 0,
+            PAID: 0,
+            UNPAID: 0,
+            FAILED: 0,
+        },
+
+        total_by_status: {
+            PAID: 0,
+            UNPAID: 0,
+            FAILED: 0,
+        },
+
+        total_orders: 0,
+    };
+
+    orders.forEach(order => {
+        const method = order.payment_method;
+        const status = order.payment_status;
+
+        if (statistics[method] && statistics[method][status] !== undefined) {
+            statistics[method][status] += 1;
+            statistics[method].total += 1;
+            statistics.total_by_status[status] += 1;
+            statistics.total_orders += 1;
+        }
+    });
+
+    return statistics;
+};
+
 module.exports = {
     getDashboardSummary,
     getRevenueStatistics,
     getTopProducts,
     getLowStockProducts,
+    getPaymentStatistics,
 };

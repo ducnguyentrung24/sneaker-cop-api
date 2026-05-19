@@ -68,9 +68,27 @@ const getLowStockProducts = async (req, res) => {
     }
 };
 
+const getPaymentStatistics = async (req, res) => {
+    try {
+        const data = await dashboardService.getPaymentStatistics();
+
+        res.status(200).json({
+            success: true,
+            message: 'Get payment statistics successfully',
+            data,
+        });
+    } catch(error) {
+        return res.status(400).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
 module.exports = {
     getDashboardSummary,
     getRevenueStatistics,
     getTopProducts,
     getLowStockProducts,
+    getPaymentStatistics,
 };

@@ -30,4 +30,10 @@ router.get('/low-stock',
     dashboardController.getLowStockProducts
 );
 
+router.get('/payment-statistics',
+    authenticate,
+    authorizeRoles(ROLES.ADMIN),
+    dashboardController.getPaymentStatistics
+);
+
 module.exports = router;
