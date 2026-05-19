@@ -24,4 +24,10 @@ router.get('/top-products',
     dashboardController.getTopProducts
 );
 
+router.get('/low-stock',
+    authenticate,
+    authorizeRoles(ROLES.ADMIN),
+    dashboardController.getLowStockProducts
+);
+
 module.exports = router;

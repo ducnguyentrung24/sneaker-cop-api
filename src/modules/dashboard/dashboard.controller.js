@@ -51,8 +51,26 @@ const getTopProducts = async (req, res) => {
     }
 };
 
+const getLowStockProducts = async (req, res) => {
+    try {
+        const data = await dashboardService.getLowStockProducts(req.query);
+
+        res.status(200).json({
+            success: true,
+            message: 'Get low stock products successfully',
+            data,
+        });
+    } catch(error) {
+        return res.status(400).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
 module.exports = {
     getDashboardSummary,
     getRevenueStatistics,
     getTopProducts,
+    getLowStockProducts,
 };

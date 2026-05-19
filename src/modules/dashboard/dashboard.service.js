@@ -162,8 +162,39 @@ const getTopProducts = async (query) => {
         .slice(0, limitNumber);
 };
 
+const getLowStockProducts = async (query) => {
+    const { threshold = 5 } = query;
+
+    const thresholdNumber = Number(threshold) || 5;
+
+    const variants = await ProductVariant.findAll({
+        where: {
+            stock: { [Op.lte]: thresholdNumber },
+        },
+        attributes: ['id', 'product_id', 'color', 'color', 'size', 'stock', 'image_url'],
+        include: [
+            {
+                model: Product,
+                as: 'product',
+                attributes: ['id', 'name', 'thumbnail'],
+            },
+        ],
+    });
+
+    return variants.map(variant => ({
+        variant_id: variant.id,
+        product_id: variant.product_id,
+        product_name: variant.product?.name,
+        color: variant.color,
+        size: variant.size,
+        stock: variant.stock,
+        image: variant.image_url || variant.product?.thumbnail,
+    }));
+};
+
 module.exports = {
     getDashboardSummary,
     getRevenueStatistics,
     getTopProducts,
+    getLowStockProducts,
 };

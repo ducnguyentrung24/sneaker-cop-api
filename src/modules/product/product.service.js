@@ -146,6 +146,7 @@ const getProductById = async (productId) => {
     return product;
 };
 
+// Admin
 const createProduct = async (data) => {
     return await sequelize.transaction(async (transaction) => {
         const { images, variants, ...productData } = data;
