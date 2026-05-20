@@ -43,14 +43,14 @@ const getDashboardSummary = async () => {
     };
 };
 
-const getRevenueStatistics = async (type = 'day') => {
-    const allowedTypes = ['day', 'month', 'year'];
+const getRevenueStatistics = async (type = 'week') => {
+    const allowedTypes = ['week', 'month', 'year'];
     if (!allowedTypes.includes(type)) throw new Error('Invalid satatistics type');
 
     const now = new Date();
     const startDate = new Date();
 
-    if (type === 'day') startDate.setDate(now.getDate() - 6);
+    if (type === 'week') startDate.setDate(now.getDate() - 6);
     if (type === 'month') {
         startDate.setMonth(now.getMonth() - 11);
         startDate.setDate(1);
@@ -76,17 +76,63 @@ const getRevenueStatistics = async (type = 'day') => {
 
     const result = {};
 
-    orders.forEach(order => {
-        const date = new Date(order.created_at);
-
+    const formatLabel = (date, type) => {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
 
-        let label = `${year}-${month}-${day}`;
+        if (type === 'week') return `${day}/${month}/${year}`;
+        if (type === 'month') return `${month}/${year}`;
+        if (type === 'year') return `${year}`;
 
-        if (type === 'month') label = `${year}-${month}`;
-        if (type === 'year') label = `${year}`;
+        return `${day}/${month}/${year}`;
+    };
+
+    if (type === 'week') {
+        for (let i = 0; i < 7; i++) {
+            const date = new Date(startDate);
+            date.setDate(startDate.getDate() + i);
+
+            const label = formatLabel(date, type);
+            result[label] = {
+                label,
+                revenue: 0,
+                orders: 0,
+            };
+        }
+    }
+
+    if (type === 'month') {
+        for (let i = 0; i < 12; i++) {
+            const date = new Date(startDate);
+            date.setMonth(startDate.getMonth() + i);
+
+            const label = formatLabel(date, type);
+            result[label] = {
+                label,
+                revenue: 0,
+                orders: 0,
+            };
+        }
+    }
+
+    if (type === 'year') {
+        for (let i = 0; i < 5; i++) {
+            const date = new Date(startDate);
+            date.setFullYear(startDate.getFullYear() + i);
+
+            const label = formatLabel(date, type);
+            result[label] = {
+                label,
+                revenue: 0,
+                orders: 0,
+            };
+        }
+    }
+
+    orders.forEach(order => {
+        const date = new Date(order.created_at);
+        const label = formatLabel(date, type);
 
         if (!result[label]) {
             result[label] = {
@@ -103,65 +149,99 @@ const getRevenueStatistics = async (type = 'day') => {
     return Object.values(result);
 };
 
+// const getTopProducts = async (query) => {
+//     const { limit = 5 } = query;
+//     const limitNumber = Number(limit) || 5;
+
+//     const orders = await Order.findAll({
+//         where: {
+//             status: orderStatus.COMPLETED,
+//         },
+//         attributes: ['id'],
+//         include: [
+//             {
+//                 model: OrderItem,
+//                 as: 'items',
+//                 attributes: ['id', 'product_variant_id', 'quantity', 'price'],
+//                 include: [
+//                     {
+//                         model: ProductVariant,
+//                         as: 'variant',
+//                         attributes: ['id', 'product_id'],                 
+//                         include: [
+//                             {
+//                                 model: Product,
+//                                 as: 'product',
+//                                 attributes: ['id', 'name', 'thumbnail'],
+//                             },
+//                         ],
+//                     },
+//                 ],
+//             },
+//         ],
+//     });
+
+//     const result = {};
+
+//     orders.forEach(order => {
+//         order.items.forEach(item => {
+//             const product = item.variant?.product;
+//             if (!product) return;
+
+//             const productId = product.id;
+
+//             if (!result[productId]) {
+//                 result[productId] = {
+//                     product_id: productId,
+//                     product_name: product.name,
+//                     thumbnail: product.thumbnail,
+//                     sold_quantity: 0,
+//                     revenue: 0,
+//                 };
+//             }
+
+//             result[productId].sold_quantity += Number(item.quantity);
+//             result[productId].revenue += Number(item.price) * Number(item.quantity);
+//         });
+//     });
+
+//     return Object.values(result)
+//         .sort((a, b) => b.sold_quantity - a.sold_quantity)
+//         .slice(0, limitNumber);
+// };
+
 const getTopProducts = async (query) => {
     const { limit = 5 } = query;
+
     const limitNumber = Number(limit) || 5;
 
-    const orders = await Order.findAll({
-        where: {
-            status: orderStatus.COMPLETED,
-        },
-        attributes: ['id'],
-        include: [
-            {
-                model: OrderItem,
-                as: 'items',
-                attributes: ['id', 'product_variant_id', 'quantity', 'price'],
-                include: [
-                    {
-                        model: ProductVariant,
-                        as: 'variant',
-                        attributes: ['id', 'product_id'],                 
-                        include: [
-                            {
-                                model: Product,
-                                as: 'product',
-                                attributes: ['id', 'name', 'thumbnail'],
-                            },
-                        ],
-                    },
-                ],
-            },
+    const products = await Product.findAll({
+        attributes: [
+            'id',
+            'name',
+            'thumbnail',
+            'sold',
         ],
+
+        where: {
+            sold: {
+                [Op.gt]: 0,
+            },
+        },
+
+        order: [
+            ['sold', 'DESC'],
+        ],
+
+        limit: limitNumber,
     });
 
-    const result = {};
-
-    orders.forEach(order => {
-        order.items.forEach(item => {
-            const product = item.variant?.product;
-            if (!product) return;
-
-            const productId = product.id;
-
-            if (!result[productId]) {
-                result[productId] = {
-                    product_id: productId,
-                    product_name: product.name,
-                    thumbnail: product.thumbnail,
-                    sold_quantity: 0,
-                    revenue: 0,
-                };
-            }
-
-            result[productId].sold_quantity += item.quantity;
-            result[productId].revenue += Number(item.price) * item.quantity;
-        });
-    });
-
-    return Object.values(result)
-        .sort((a, b) => b.sold_quantity - a.sold_quantity)
-        .slice(0, limitNumber);
+    return products.map(product => ({
+        product_id: product.id,
+        product_name: product.name,
+        thumbnail: product.thumbnail,
+        sold_quantity: product.sold || 0,
+    }));
 };
 
 const getLowStockProducts = async (query) => {
