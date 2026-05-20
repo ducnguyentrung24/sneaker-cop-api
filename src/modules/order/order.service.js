@@ -691,6 +691,34 @@ const updateOrderStatus = async (orderId, adminId, data) => {
 
         await order.update({ status }, { transaction });
 
+        // Update sold
+        if (currentStatus !== orderStatus.COMPLETED && status === orderStatus.COMPLETED) {
+            for (const item of order.items) {
+                const variant = await ProductVariant.findByPk(
+                    item.product_variant_id,
+                    { transaction }
+                );
+
+                if (!variant) continue;
+
+                await ProductVariant.increment(
+                    { sold: item.quantity },
+                    {
+                        where: { id: item.product_variant_id },
+                        transaction,
+                    }
+                );
+
+                await Product.increment(
+                    { sold: item.quantity },
+                    {
+                        where: { id: variant.product_id },
+                        transaction,
+                    }
+                );
+            }
+        }
+
         await OrderStatusLog.create({
             order_id: order.id,
             from_status: currentStatus,
