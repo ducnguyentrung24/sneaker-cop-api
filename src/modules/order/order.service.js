@@ -9,6 +9,7 @@ const Product = require('../product/product.model');
 const ProductVariant = require('../product/productVariant.model');
 const Address = require('../address/address.model');
 const OrderStatusLog = require('./orderStatusLog.model');
+const User = require('../user/user.model');
 
 const { paymentMethods } = require('../../constants/paymentMethod.constant');
 const { orderStatus } = require('../../constants/orderStatus.constant');
@@ -566,6 +567,11 @@ const getAdminOrderDetail = async (orderId) => {
     const order = await Order.findByPk(orderId, {
         include: [
             {
+                model: User,
+                as: 'user',
+                attributes: ['id', 'full_name', 'email', 'phone'],
+            },
+            {
                 model: OrderItem,
                 as: 'items',
                 attributes: ['id', 'product_variant_id', 'quantity', 'price'],
@@ -606,11 +612,21 @@ const getAdminOrderDetail = async (orderId) => {
         order_code: order.order_code,
 
         user_id: order.user_id,
+
+        user: order.user
+        ? {
+            id: order.user.id,
+            full_name: order.user.full_name,
+            email: order.user.email,
+            phone: order.user.phone,
+        }
+        : null,
+
         receiver_name: order.receiver_name,
         phone: order.phone,
         city: order.city,
         ward: order.ward,
-        detail_address: order.detail_address,
+        full_address: order.detail_address,
 
         note: order.note,
 
