@@ -81,7 +81,7 @@ const getRevenueStatistics = async (type = 'week') => {
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
 
-        if (type === 'week') return `${day}/${month}/${year}`;
+        if (type === 'week') return `${day}/${month}`;
         if (type === 'month') return `${month}/${year}`;
         if (type === 'year') return `${year}`;
 
@@ -149,90 +149,17 @@ const getRevenueStatistics = async (type = 'week') => {
     return Object.values(result);
 };
 
-// const getTopProducts = async (query) => {
-//     const { limit = 5 } = query;
-//     const limitNumber = Number(limit) || 5;
-
-//     const orders = await Order.findAll({
-//         where: {
-//             status: orderStatus.COMPLETED,
-//         },
-//         attributes: ['id'],
-//         include: [
-//             {
-//                 model: OrderItem,
-//                 as: 'items',
-//                 attributes: ['id', 'product_variant_id', 'quantity', 'price'],
-//                 include: [
-//                     {
-//                         model: ProductVariant,
-//                         as: 'variant',
-//                         attributes: ['id', 'product_id'],                 
-//                         include: [
-//                             {
-//                                 model: Product,
-//                                 as: 'product',
-//                                 attributes: ['id', 'name', 'thumbnail'],
-//                             },
-//                         ],
-//                     },
-//                 ],
-//             },
-//         ],
-//     });
-
-//     const result = {};
-
-//     orders.forEach(order => {
-//         order.items.forEach(item => {
-//             const product = item.variant?.product;
-//             if (!product) return;
-
-//             const productId = product.id;
-
-//             if (!result[productId]) {
-//                 result[productId] = {
-//                     product_id: productId,
-//                     product_name: product.name,
-//                     thumbnail: product.thumbnail,
-//                     sold_quantity: 0,
-//                     revenue: 0,
-//                 };
-//             }
-
-//             result[productId].sold_quantity += Number(item.quantity);
-//             result[productId].revenue += Number(item.price) * Number(item.quantity);
-//         });
-//     });
-
-//     return Object.values(result)
-//         .sort((a, b) => b.sold_quantity - a.sold_quantity)
-//         .slice(0, limitNumber);
-// };
-
 const getTopProducts = async (query) => {
     const { limit = 5 } = query;
 
     const limitNumber = Number(limit) || 5;
 
     const products = await Product.findAll({
-        attributes: [
-            'id',
-            'name',
-            'thumbnail',
-            'sold',
-        ],
-
+        attributes: ['id', 'name', 'thumbnail', 'sold'],
         where: {
-            sold: {
-                [Op.gt]: 0,
-            },
+            sold: { [Op.gt]: 0 },
         },
-
-        order: [
-            ['sold', 'DESC'],
-        ],
-
+        order: [ ['sold', 'DESC'] ],
         limit: limitNumber,
     });
 
@@ -357,7 +284,7 @@ const getCategoryStatistics = async () => {
     const categories = Object.values(statistics).map(item => ({
         ...item,
         percent: totalProducts
-            ? Math.round((item.product_count / totalProducts) * 10000)
+            ? Math.round((item.product_count / totalProducts) * 100)
             : 0,
     }));
 
@@ -404,7 +331,7 @@ const getBrandStatistics = async () => {
     const brands = Object.values(statistics).map(item => ({
         ...item,
         percent: totalProducts
-            ? Math.round((item.product_count / totalProducts) * 10000)
+            ? Math.round((item.product_count / totalProducts) * 100)
             : 0,
     }));
 

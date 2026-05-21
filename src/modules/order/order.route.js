@@ -30,12 +30,6 @@ router.post('/checkout/reorder',
     orderController.checkoutFromReorder
 );
 
-router.get('/', authenticate, orderController.getMyOrders);
-
-router.get('/:id', authenticate, orderController.getOrderDetail);
-
-router.patch('/:id/cancel', authenticate, orderController.cancelOrder);
-
 // Admin
 router.get('/orders',
     authenticate,
@@ -54,5 +48,12 @@ router.patch('/orders/:id/status',
     authorizeRoles(ROLES.ADMIN),
     orderController.updateOrderStatus
 );
+
+// User
+router.get('/', authenticate, orderController.getMyOrders);
+
+router.get('/:id', authenticate, orderController.getOrderDetail);
+
+router.patch('/:id/cancel', authenticate, orderController.cancelOrder);
 
 module.exports = router;
