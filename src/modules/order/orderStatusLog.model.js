@@ -20,7 +20,7 @@ const OrderStatusLog = sequelize.define('OrderStatusLog', {
         allowNull: false,
     },
     changed_by: {
-        type: DataTypes.STRING,
+        type: DataTypes.INTEGER,
         allowNull: false,
     },
     note: {

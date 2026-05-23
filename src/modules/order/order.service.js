@@ -342,18 +342,16 @@ const getOrderDetail = async (userId, orderId) => {
                 model: OrderItem,
                 as: 'items',
                 attributes: ['id', 'quantity', 'price'],
-
                 include: [
                     {
                         model: ProductVariant,
                         as: 'variant',
                         attributes: ['id', 'color', 'size', 'image_url', 'price'],
-
                         include: [
                             {
                                 model: Product,
                                 as: 'product',
-                                attributes: ['id', 'name'],
+                                attributes: ['id', 'thumbnail', 'name'],
                             },
                         ],
                     },
@@ -362,14 +360,15 @@ const getOrderDetail = async (userId, orderId) => {
             {
                 model: OrderStatusLog,
                 as: 'status_logs',
-                attributes: [
-                    'id',
-                    'from_status',
-                    'to_status',
-                    'note',
-                    'created_at',
-                ],
+                attributes: ['id', 'from_status', 'to_status', 'note', 'created_at'],
             },
+        ],
+        order: [
+            [
+                { model: OrderStatusLog, as: 'status_logs' },
+                'created_at',
+                'ASC',
+            ],
         ],
     });
 
@@ -391,6 +390,10 @@ const getOrderDetail = async (userId, orderId) => {
         payment_method: order.payment_method,
         payment_status: order.payment_status,
 
+        total_price: order.total_price,
+        shipping_fee: order.shipping_fee,
+        final_price: order.final_price,
+
         items: order.items.map(item => ({
             id: item.id,
             variant_id: item.variant.id,
@@ -405,11 +408,13 @@ const getOrderDetail = async (userId, orderId) => {
             image: item.variant.image_url,
         })),
 
-        status_logs: order.status_logs,
-
-        total_price: order.total_price,
-        shipping_fee: order.shipping_fee,
-        final_price: order.final_price,  
+        status_logs: order.status_logs.map(log => ({
+            id: log.id,
+            from_status: log.from_status,
+            to_status: log.to_status,
+            note: log.note,
+            created_at: log.created_at,
+        })),
     };
 
     return formatted;
@@ -417,7 +422,6 @@ const getOrderDetail = async (userId, orderId) => {
 
 const cancelOrder = async (userId, orderId) => {
     return await sequelize.transaction(async (transaction) => {
-        // Get order + items
         const order = await Order.findOne({
             where: {
                 id: orderId,
@@ -431,7 +435,6 @@ const cancelOrder = async (userId, orderId) => {
         });
 
         if (!order) throw new Error('Order not found');
-        // Check status
         if (order.status !== orderStatus.PENDING && order.status !== orderStatus.PROCESSING) throw new Error('Only pending and processing orders can be cancelled');
 
         // Restore stock
@@ -455,12 +458,13 @@ const cancelOrder = async (userId, orderId) => {
             status: orderStatus.CANCELLED,
         }, { transaction });
 
+        // Create order status log
         await OrderStatusLog.create({
             order_id: order.id,
             from_status: oldStatus,
             to_status: orderStatus.CANCELLED,
             changed_by: userId,
-            note: 'Order cancelled by user',
+            note: 'Đơn hàng bị hủy bởi khách hàng',
         }, { transaction });
 
         return order;
@@ -594,6 +598,13 @@ const getAdminOrderDetail = async (orderId) => {
                 model: OrderStatusLog,
                 as: 'status_logs',
                 attributes: ['id', 'from_status', 'to_status', 'changed_by', 'note', 'created_at'],
+                include: [
+                    {
+                        model: User,
+                        as: 'changed_by_user',
+                        attributes: ['id', 'full_name', 'email'],
+                    },
+                ],
             },
         ],
         order: [
@@ -663,6 +674,15 @@ const getAdminOrderDetail = async (orderId) => {
             from_status: log.from_status,
             to_status: log.to_status,
             changed_by: log.changed_by,
+            
+            changed_by_user: log.changed_by_user
+            ? {
+                id: log.changed_by_user.id,
+                full_name: log.changed_by_user.full_name,
+                email: log.changed_by_user.email,
+            }
+            : null,
+
             note: log.note,
             created_at: log.created_at,
         })),
@@ -674,6 +694,8 @@ const getAdminOrderDetail = async (orderId) => {
 const updateOrderStatus = async (orderId, adminId, data) => {
     return await sequelize.transaction(async (transaction) => {
         const { status, note } = data;
+
+        if (status === orderStatus.CANCELLED && !note) throw new Error('Note is required when cancelling an order');
 
         const order = await Order.findByPk(orderId, {
             include: {

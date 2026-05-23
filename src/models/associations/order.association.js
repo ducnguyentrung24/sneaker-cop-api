@@ -40,6 +40,17 @@ const initOrderAssociations = () => {
         foreignKey: 'order_id',
     });
 
+    // User - OrderStatusLog (1 - N)
+    User.hasMany(OrderStatusLog, {
+        foreignKey: 'changed_by',
+        as: 'status_changes',
+    });
+
+    OrderStatusLog.belongsTo(User, {
+        foreignKey: 'changed_by',
+        as: 'changed_by_user',
+    });
+
     // OrderItem - ProductVariant (N - 1)
     ProductVariant.hasMany(OrderItem, {
         foreignKey: 'product_variant_id',
