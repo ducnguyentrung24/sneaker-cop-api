@@ -11,7 +11,7 @@ const Address = require('../address/address.model');
 const OrderStatusLog = require('./orderStatusLog.model');
 const User = require('../user/user.model');
 
-const { paymentMethods } = require('../../constants/paymentMethod.constant');
+const { paymentMethods , paymentStatus} = require('../../constants/paymentMethod.constant');
 const { orderStatus } = require('../../constants/orderStatus.constant');
 const { ORDER_FLOW } = require('../../constants/orderFlow.constant');
 
@@ -19,7 +19,7 @@ const behaviorService = require("../behavior/behavior.service");
 const { behaviorTypes } = require('../../constants/behavior.constant');
 
 const genrateOrderCode = () => {
-    return `ORD-${Date.now()}`;
+    return `#ORD-${Date.now()}`;
 };
 
 const processOrder = async ({
@@ -705,7 +705,12 @@ const updateOrderStatus = async (orderId, adminId, data) => {
             }
         }
 
-        await order.update({ status }, { transaction });
+        const updateData = { status };
+        if (status === orderStatus.COMPLETED) {
+            updateData.payment_status = paymentStatus.PAID;
+        }
+
+        await order.update(updateData, { transaction });
 
         // Update sold
         if (currentStatus !== orderStatus.COMPLETED && status === orderStatus.COMPLETED) {
