@@ -4,6 +4,7 @@ const categorySchema = Joi.object({
     name: Joi.string().required().messages({
         "any.required": "Tên danh mục là bắt buộc",
     }),
+    description: Joi.string().allow("").optional(),
 });
 
 const validate = (schema) => (res, req, next) => {
