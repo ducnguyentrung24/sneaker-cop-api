@@ -50,7 +50,7 @@ router.patch('/:id/status',
     userController.updateUserStatus
 );
 
-router.patch('/users/:id',
+router.patch('/:id',
     authenticate,
     authorizeRoles(ROLES.ADMIN),
     validateUpdateUser,

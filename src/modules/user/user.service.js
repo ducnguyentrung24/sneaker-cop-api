@@ -53,7 +53,7 @@ const getAllUsers = async (query) => {
     const {
         page = 1,
         limit = 10,
-        keyword,
+        keyword="",
         is_active,
         sort= 'created_at:desc',
     } = query;
@@ -66,22 +66,16 @@ const getAllUsers = async (query) => {
 
     if (is_active !== undefined) where.is_active = is_active === 'true';
 
-    if (keyword) {
+    if (keyword.trim()) {
         where[Op.or] = [
             {
-                full_name: {
-                    [Op.iLike]: `%${keyword}%`,
-                },
+                full_name: { [Op.iLike]: `%${keyword}%` },
             },
             {
-                email: {
-                    [Op.iLike]: `%${keyword}%`,
-                },
+                email: { [Op.iLike]: `%${keyword}%` },
             },
             {
-                phone: {
-                    [Op.iLike]: `%${keyword}%`,
-                },
+                phone: { [Op.iLike]: `%${keyword}%` },
             }
         ];
     }
@@ -94,18 +88,7 @@ const getAllUsers = async (query) => {
 
     const { count, rows } = await User.findAndCountAll({
         where,
-
-        attributes: [
-            'id',
-            'email',
-            'full_name',
-            'phone',
-            'role',
-            'is_active',
-            'created_at',
-        ],
-
-
+        attributes: ['id', 'email', 'full_name', 'phone', 'role', 'is_active', 'created_at'],
         limit: limitNumber,
         offset,
         order: orderSort,
