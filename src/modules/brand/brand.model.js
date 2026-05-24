@@ -12,6 +12,10 @@ const Brand = sequelize.define('Brand', {
         allowNull: false,
         unique: true,
     },
+    description: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+    },
 }, {
     tableName: 'brands',
     timestamps: true,

@@ -4,6 +4,7 @@ const brandSchema = Joi.object({
     name: Joi.string().required().messages({
         "any.required": "Tên thương hiệu là bắt buộc",
     }),
+    description: Joi.string().allow("").optional(),
 });
 
 const validate = (schema) => (res, req, next) => {
