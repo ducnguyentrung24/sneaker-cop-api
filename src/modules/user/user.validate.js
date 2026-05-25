@@ -6,7 +6,7 @@ const updateProfileSchema = Joi.object({
     full_name: Joi.string().max(255).required().messages({
         "any.required": "Họ tên là bắt buộc",
     }),
-    phone: Joi.string().optional().max(20).messages({
+    phone: Joi.string().optional().allow('', null).max(20).messages({
         "string.max": "Số điện thoại không được vượt quá 20 ký tự",
     }),
 });
