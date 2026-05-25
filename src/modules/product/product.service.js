@@ -5,6 +5,8 @@ const Product = require("./product.model");
 const ProductImage = require("./productImage.model");
 const ProductVariant = require("./productVariant.model");
 const Review = require("../review/review.model");
+const Category = require("../category/category.model");
+const Brand = require("../brand/brand.model");
 
 const behaviorService = require("../behavior/behavior.service");
 const { behaviorTypes } = require('../../constants/behavior.constant');
@@ -111,21 +113,48 @@ const getProducts = async (query) => {
         limit: limitNum,
         offset,
         order,
-        attributes: [
-            "id",
-            "thumbnail",
-            "name",
-            "base_price",
-            "discount_percent",
-            "final_price",
-            "sold",
-        ],
+        attributes: ["id", "thumbnail", "name", "base_price", "discount_percent", "final_price", "sold", 'category_id', 'brand_id'],
     });
+
+    const data = [];
+
+    for (const product of rows) {
+        const category = await Category.findByPk(product.category_id, {
+            attributes: ["id", "name"]
+        });
+        const brand = await Brand.findByPk(product.brand_id, {
+            attributes: ["id", "name"]
+        });
+
+        const totalStock = await ProductVariant.sum("stock", {
+            where: { product_id: product.id }
+        });
+
+        data.push({
+            id: product.id,
+
+            thumbnail: product.thumbnail,
+            name: product.name,
+
+            base_price: product.base_price,
+            discount_percent: product.discount_percent,
+            final_price: product.final_price,
+
+            sold: Number(product.sold),
+            total_stock: Number(totalStock || 0),
+
+            category_id: product.category_id,
+            category_name: category?.name || null,
+
+            brand_id: product.brand_id,
+            brand_name: brand?.name || null,
+        });
+    }
 
     const totalPages = Math.ceil(count / limitNum);
 
     return {
-        data: rows,
+        data,
         pagination: {
             total: count,
             page: pageNum,
