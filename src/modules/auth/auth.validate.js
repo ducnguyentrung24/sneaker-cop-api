@@ -27,10 +27,36 @@ const loginSchema = Joi.object({
     }),
 });
 
+const forgotPasswordSchema = Joi.object({
+    email: Joi.string().email().required().messages({
+        "string.email": "Email không hợp lệ",
+        "any.required": "Email là bắt buộc",
+        "string.empty": "Email không được để trống",
+    }),
+});
+
+const resetPasswordSchema = Joi.object({
+    email: Joi.string().email().required().messages({
+        "string.email": "Email không hợp lệ",
+        "any.required": "Email là bắt buộc",
+        "string.empty": "Email không được để trống",
+    }),
+    otp: Joi.string().length(6).required().messages({
+        "string.length": "OTP phải có 6 ký tự",
+        "any.required": "OTP là bắt buộc",
+        "string.empty": "OTP không được để trống",
+    }),
+    new_password: Joi.string().min(6).required().messages({
+        "string.min": "Mật khẩu mới phải có ít nhất 6 ký tự",
+        "any.required": "Mật khẩu mới là bắt buộc",
+        "string.empty": "Mật khẩu mới không được để trống",
+    }),
+});
+
 // Middleware factory
 const validate = (schema) => (req, res, next) => {
     const { error, value } = schema.validate(req.body, {
-        abortEarly: true, // chỉ lấy lôi đầu tiên
+        abortEarly: true,
         stripUnknown: true, // loại bỏ các trường không được định nghĩa
     });
 
@@ -50,4 +76,6 @@ const validate = (schema) => (req, res, next) => {
 module.exports = {
     validateRegister: validate(registerSchema),
     validateLogin: validate(loginSchema),
+    validateForgotPassword: validate(forgotPasswordSchema),
+    validateResetPassword: validate(resetPasswordSchema),
 };
