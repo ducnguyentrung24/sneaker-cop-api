@@ -10,10 +10,60 @@ const Brand = require('../brand/brand.model');
 
 const { orderStatus } = require('../../constants/orderStatus.constant');
 
+const formatDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${day}/${month}/${year}`;
+};
+
+const getCurrentWeekRange = () => {
+    const now = new Date();
+
+    // Sunday = 0, Monday = 1
+    const day = now.getDay();
+    const diffToMonday = day === 0 ? 6 : day - 1;
+
+    const fromDate = new Date(now);
+    fromDate.setDate(now.getDate() - diffToMonday);
+    fromDate.setHours(0, 0, 0, 0);
+
+    const toDate = new Date(fromDate);
+    toDate.setDate(fromDate.getDate() + 6);
+    toDate.setHours(23, 59, 59, 999);
+
+    return {
+        fromDate,
+        toDate,
+    };
+};
+
 const getDashboardSummary = async () => {
+    const { fromDate, toDate } = getCurrentWeekRange();
+
     const totalUsers = await User.count();
+
     const totalProducts = await Product.count();
-    const totalOrders = await Order.count();
+
+    const totalOrders = await Order.count({
+        where: {
+            created_at: {
+                [Op.gte]: fromDate,
+                [Op.lte]: toDate,
+            },
+        },
+    });
+
+    const completedOrders = await Order.count({
+        where: {
+            status: orderStatus.COMPLETED,
+            created_at: {
+                [Op.gte]: fromDate,
+                [Op.lte]: toDate,
+            },
+        },
+    });
 
     const pendingOrders = await Order.count({
         where: {
@@ -21,53 +71,56 @@ const getDashboardSummary = async () => {
         },
     });
 
-    const lowStockCount = await ProductVariant.count({
+    const totalRevenue = await Order.sum('final_price', {
+        where: {
+            status: orderStatus.COMPLETED,
+            created_at: {
+                [Op.gte]: fromDate,
+                [Op.lte]: toDate,
+            },
+        },
+    });
+
+    const lowStockProducts = await ProductVariant.count({
         where: {
             stock: { [Op.lte]: 10 },
         },
     });
 
-    const totalRevenue = await Order.sum('final_price', {
-        where: {
-            status: orderStatus.COMPLETED,
-        },
-    });
-
     return {
+        period: 'week',
+
+        current_period: {
+            from_date: formatDate(fromDate),
+            to_date: formatDate(toDate),
+        },
+
         total_users: totalUsers,
         total_products: totalProducts,
+
         total_orders: totalOrders,
+        completed_orders: completedOrders,
         pending_orders: pendingOrders,
-        low_stock_count: lowStockCount,
+
         total_revenue: Number(totalRevenue || 0),
+
+        average_order_value: completedOrders
+            ? Math.round(Number(totalRevenue || 0) / completedOrders)
+            : 0,
+
+        low_stock_products: lowStockProducts,
     };
 };
 
-const getRevenueStatistics = async (type = 'week') => {
-    const allowedTypes = ['week', 'month', 'year'];
-    if (!allowedTypes.includes(type)) throw new Error('Invalid satatistics type');
-
-    const now = new Date();
-    const startDate = new Date();
-
-    if (type === 'week') startDate.setDate(now.getDate() - 6);
-    if (type === 'month') {
-        startDate.setMonth(now.getMonth() - 11);
-        startDate.setDate(1);
-    }
-    if (type === 'year') {
-        startDate.setFullYear(now.getFullYear() - 4);
-        startDate.setMonth(0);
-        startDate.setDate(1);
-    }
-
-    startDate.setHours(0, 0, 0, 0);
+const getRevenueStatistics = async () => {
+    const { fromDate, toDate } = getCurrentWeekRange();
 
     const orders = await Order.findAll({
         where: {
             status: orderStatus.COMPLETED,
             created_at: {
-                [Op.gte]: startDate,
+                [Op.gte]: fromDate,
+                [Op.lte]: toDate,
             },
         },
         attributes: ['id', 'final_price', 'created_at'],
@@ -76,63 +129,29 @@ const getRevenueStatistics = async (type = 'week') => {
 
     const result = {};
 
-    const formatLabel = (date, type) => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
+    const formatLabel = (date) => {
         const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
 
-        if (type === 'week') return `${day}/${month}`;
-        if (type === 'month') return `${month}/${year}`;
-        if (type === 'year') return `${year}`;
-
-        return `${day}/${month}/${year}`;
+        return `${day}/${month}`;
     };
 
-    if (type === 'week') {
-        for (let i = 0; i < 7; i++) {
-            const date = new Date(startDate);
-            date.setDate(startDate.getDate() + i);
+    for (let i = 0; i < 7; i++) {
+        const date = new Date(fromDate);
+        date.setDate(fromDate.getDate() + i);
 
-            const label = formatLabel(date, type);
-            result[label] = {
-                label,
-                revenue: 0,
-                orders: 0,
-            };
-        }
-    }
+        const label = formatLabel(date);
 
-    if (type === 'month') {
-        for (let i = 0; i < 12; i++) {
-            const date = new Date(startDate);
-            date.setMonth(startDate.getMonth() + i);
-
-            const label = formatLabel(date, type);
-            result[label] = {
-                label,
-                revenue: 0,
-                orders: 0,
-            };
-        }
-    }
-
-    if (type === 'year') {
-        for (let i = 0; i < 5; i++) {
-            const date = new Date(startDate);
-            date.setFullYear(startDate.getFullYear() + i);
-
-            const label = formatLabel(date, type);
-            result[label] = {
-                label,
-                revenue: 0,
-                orders: 0,
-            };
-        }
+        result[label] = {
+            date: label,
+            revenue: 0,
+            orders: 0,
+        };
     }
 
     orders.forEach(order => {
         const date = new Date(order.created_at);
-        const label = formatLabel(date, type);
+        const label = formatLabel(date);
 
         if (!result[label]) {
             result[label] = {
@@ -151,30 +170,75 @@ const getRevenueStatistics = async (type = 'week') => {
 
 const getTopProducts = async (query) => {
     const { limit = 5 } = query;
+    
+    const { fromDate, toDate } = getCurrentWeekRange();
 
     const limitNumber = Number(limit) || 5;
 
-    const products = await Product.findAll({
-        attributes: ['id', 'name', 'thumbnail', 'sold'],
+    const orders = await Order.findAll({
         where: {
-            sold: { [Op.gt]: 0 },
+            status: orderStatus.COMPLETED,
+            created_at: {
+                [Op.gte]: fromDate,
+                [Op.lte]: toDate,
+            },
         },
-        order: [ ['sold', 'DESC'] ],
-        limit: limitNumber,
+        attributes: ['id'],
+        include: [
+            {
+                model: OrderItem,
+                as: 'items',
+                attributes: ['id', 'product_variant_id', 'quantity', 'price'],
+                include: [
+                    {
+                        model: ProductVariant,
+                        as: 'variant',
+                        attributes: ['id', 'product_id'],
+                        include: [
+                            {
+                                model: Product,
+                                as: 'product',
+                                attributes: ['id', 'name', 'thumbnail'],
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
     });
 
-    return products.map(product => ({
-        product_id: product.id,
-        product_name: product.name,
-        thumbnail: product.thumbnail,
-        sold_quantity: product.sold || 0,
-    }));
+    const result = {};
+
+    orders.forEach(order => {
+        order.items.forEach(item => {
+            const product = item.variant?.product;
+            if (!product) return;
+
+            const productId = product.id;
+            if (!result[productId]) {
+                result[productId] = {
+                    product_id: product.id,
+                    product_name: product.name,
+                    thumbnail: product.thumbnail,
+                    sold_quantity: 0,
+                    revenue: 0,
+                };   
+            }
+
+            result[productId].sold_quantity += Number(item.quantity);
+            result[productId].revenue += Number(item.price) * Number(item.quantity);
+        });
+    });
+
+    return Object.values(result)
+        .sort((a, b) => b.sold_quantity - a.sold_quantity)
+        .slice(0, limitNumber);
 };
 
 const getLowStockProducts = async (query) => {
-    const { threshold = 5 } = query;
+    const { threshold = 10 } = query;
 
-    const thresholdNumber = Number(threshold) || 5;
+    const thresholdNumber = Number(threshold) || 10;
 
     const variants = await ProductVariant.findAll({
         where: {
@@ -188,6 +252,7 @@ const getLowStockProducts = async (query) => {
                 attributes: ['id', 'name', 'thumbnail'],
             },
         ],
+        order: [['stock', 'ASC']],
     });
 
     return variants.map(variant => ({
@@ -202,12 +267,14 @@ const getLowStockProducts = async (query) => {
 };
 
 const getPaymentStatistics = async () => {
+    const { fromDate, toDate } = getCurrentWeekRange();
+
     const orders = await Order.findAll({
-        attributes: [
-            'id',
-            'payment_method',
-            'payment_status',
-        ]
+        where: {
+            status: orderStatus.COMPLETED,
+        },
+
+        attributes: ['id', 'payment_method', 'payment_status']
     });
 
     const statistics = {
@@ -249,6 +316,8 @@ const getPaymentStatistics = async () => {
 };
 
 const getCategoryStatistics = async () => {
+    const totalCategories = await Category.count();
+
     const products = await Product.findAll({
         attributes: ['id', 'category_id'],
         include: [
@@ -289,13 +358,15 @@ const getCategoryStatistics = async () => {
     }));
 
     return {
-        categories: categories.length,
+        total_categories: totalCategories,
         total_products: totalProducts,
         categories,
     }
 };
 
 const getBrandStatistics = async () => {
+    const totalBrands = await Brand.count();
+
     const products = await Product.findAll({
         attributes: ['id', 'brand_id'],
         include: [
@@ -336,7 +407,7 @@ const getBrandStatistics = async () => {
     }));
 
     return {
-        total_brands: brands.length,
+        total_brands: totalBrands,
         total_products: totalProducts,
         brands,
     };
