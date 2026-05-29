@@ -2,7 +2,7 @@ const dashboardService = require('./dashboard.service');
 
 const getDashboardSummary = async (req, res) => {
     try {
-        const data = await dashboardService.getDashboardSummary();
+        const data = await dashboardService.getDashboardSummary(req.query);
 
         res.status(200).json({
             success: true,
@@ -19,7 +19,7 @@ const getDashboardSummary = async (req, res) => {
 
 const getRevenueStatistics = async (req, res) => {
     try {
-        const data = await dashboardService.getRevenueStatistics(req.query.type);
+        const data = await dashboardService.getRevenueStatistics();
 
         res.status(200).json({
             success: true,
@@ -70,7 +70,7 @@ const getLowStockProducts = async (req, res) => {
 
 const getPaymentStatistics = async (req, res) => {
     try {
-        const data = await dashboardService.getPaymentStatistics();
+        const data = await dashboardService.getPaymentStatistics(req.query);
 
         res.status(200).json({
             success: true,

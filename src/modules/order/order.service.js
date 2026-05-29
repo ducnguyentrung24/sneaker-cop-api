@@ -637,7 +637,7 @@ const getAdminOrderDetail = async (orderId) => {
         phone: order.phone,
         city: order.city,
         ward: order.ward,
-        full_address: order.detail_address,
+        full_address: `${order.detail_address}, ${order.ward}, ${order.city}`,
 
         note: order.note,
 
