@@ -114,15 +114,6 @@ const getDashboardMetrics = async (fromDate, toDate) => {
         total_orders: totalOrders,
         completed_orders: completedOrders,
         cancelled_orders: cancelledOrders,
-
-        average_order_value: completedOrders
-            ? Math.round(Number(revenue || 0) / completedOrders)
-            : 0,
-
-        cancel_rate: totalOrders
-            ? Number(((cancelledOrders / totalOrders) * 100).toFixed(1))
-            : 0,
-        
         new_customers: newCustomers,
     };
 };
@@ -133,14 +124,21 @@ const getDashboardSummary = async (query) => {
 
     const stats = await getDashboardMetrics(fromDate, toDate);
 
+    const totalUsers = await User.count();
+    const totalProducts = await Product.count();
+    const totalOrders = await Order.count();
+
     const pendingOrders = await Order.count({
         where: {
             status: orderStatus.PENDING,
         },
     });
 
-    const totalUsers = await User.count();
-    const totalProducts = await Product.count();
+    const cancelledOrders = await Order.count({
+        where: {
+            status: orderStatus.CANCELLED,
+        },
+    });
 
     const lowStockProducts = await ProductVariant.count({
         where: {
@@ -163,6 +161,10 @@ const getDashboardSummary = async (query) => {
             total_products: totalProducts,
             pending_orders: pendingOrders,
             low_stock_count: lowStockProducts,
+
+            cancel_rate: totalOrders
+            ? Number(((cancelledOrders / totalOrders) * 100).toFixed(1))
+            : 0,
         }
     };
 };
