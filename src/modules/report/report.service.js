@@ -416,9 +416,56 @@ const getRevenueByCategory = async (query) => {
     };
 };
 
+const getRevenueOrders = async (query) => {
+    const {
+        period,
+        fromDate,
+        toDate,
+        from_date,
+        to_date,
+    } = getReportDateRange(query);
+
+    const orders = await Order.findAll({
+        where: {
+            status: orderStatus.COMPLETED,
+            updated_at: {
+                [Op.gte]: fromDate,
+                [Op.lte]: toDate,
+            },
+        },
+        attributes: ['id', 'order_code', 'receiver_name', 'phone', 'final_price', 'payment_method', 'payment_status', 'updated_at'],
+        order: [['updated_at', 'DESC']],
+    });
+
+    const data = orders.map(order => ({
+        id: order.id,
+        order_code: order.order_code,
+        receiver_name: order.receiver_name,
+        phone: order.phone,
+        final_price: Number(order.final_price || 0),
+        payment_method: order.payment_method,
+        payment_status: order.payment_status,
+        completed_at: order.updated_at,
+    }));
+
+    return {
+        period,
+
+        current_period: {
+            from_date,
+            to_date,
+        },
+
+        total_orders: orders.length,
+
+        data,
+    };
+};
+
 module.exports = {
     getRevenueSummary,
     getRevenueByProduct,
     getRevenueByBrand,
     getRevenueByCategory,
+    getRevenueOrders,
 };

@@ -30,4 +30,10 @@ router.get("/revenue-category",
     reportController.getRevenueByCategory
 );
 
+router.get("/revenue-order",
+    authenticate,
+    authorizeRoles(ROLES.ADMIN), 
+    reportController.getRevenueOrders
+);
+
 module.exports = router;

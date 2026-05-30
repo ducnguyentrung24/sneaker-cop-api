@@ -68,9 +68,27 @@ const getRevenueByCategory = async (req, res) => {
     }
 };
 
+const getRevenueOrders = async (req, res) => {
+    try {
+        const data = await reportService.getRevenueOrders(req.query);
+
+        res.status(200).json({
+            success: true,
+            message: 'Get revenue orders successfully',
+            data,
+        });
+    } catch(error) {
+        return res.status(400).json({
+            success: false,
+            message: error.message,
+        });        
+    }
+};
+
 module.exports = {
     getRevenueSummary,
     getRevenueByProduct,
     getRevenueByBrand,
     getRevenueByCategory,
+    getRevenueOrders,
 };
