@@ -18,4 +18,16 @@ router.get("/revenue-product",
     reportController.getRevenueByProduct
 );
 
+router.get("/revenue-brand",
+    authenticate,
+    authorizeRoles(ROLES.ADMIN), 
+    reportController.getRevenueByBrand
+);
+
+router.get("/revenue-category",
+    authenticate,
+    authorizeRoles(ROLES.ADMIN), 
+    reportController.getRevenueByCategory
+);
+
 module.exports = router;

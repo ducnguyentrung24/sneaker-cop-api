@@ -4,6 +4,8 @@ const Order = require("../order/order.model");
 const OrderItem = require("../order/orderItem.model");
 const Product = require("../product/product.model");
 const ProductVariant = require("../product/productVariant.model");
+const Brand = require("../brand/brand.model");
+const Category = require("../category/category.model");
 
 const { orderStatus } = require("../../constants/orderStatus.constant");
 
@@ -185,7 +187,7 @@ const getRevenueByProduct = async (query) => {
 
             if (!result[productId]) {
                 result[productId] = {
-                    product_id: productId,
+                    product_id: product.id,
                     product_name: product.name,
                     thumbnail: product.thumbnail,
                     sold_quantity: 0,
@@ -214,7 +216,209 @@ const getRevenueByProduct = async (query) => {
     };
 };
 
+const getRevenueByBrand = async (query) => {
+    const {
+        period,
+        fromDate,
+        toDate,
+        from_date,
+        to_date,
+    } = getReportDateRange(query);
+
+    const orders = await Order.findAll({
+        where: {
+            status: orderStatus.COMPLETED,
+            updated_at: {
+                [Op.gte]: fromDate,
+                [Op.lte]: toDate,
+            },
+        },
+        attributes: ["id"],
+        include: [
+            {
+                model: OrderItem,
+                as: "items",
+                attributes: ['id', 'product_variant_id', 'quantity', 'price'],
+                include: [
+                    {
+                        model: ProductVariant,
+                        as: "variant",
+                        attributes: ['id', 'product_id'],
+                        include: [
+                            {
+                                model: Product,
+                                as: "product",
+                                attributes: ['id', 'name', 'thumbnail', 'brand_id'],
+                                include: [
+                                    {
+                                        model: Brand,
+                                        as: "brand",
+                                        attributes: ['id', 'name'],
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+    });
+
+    const result = {};
+    let totalRevenue = 0;
+
+    orders.forEach(order => {
+        order.items.forEach(item => {
+            const brand = item.variant?.product?.brand
+            if (!brand) return;
+
+            const brandId = brand.id;
+            const quantity = Number(item.quantity || 0);
+            const revenue = Number(item.price || 0) * quantity;
+
+            if (!result[brandId]) {
+                result[brandId] = {
+                    brand_id: brand.id,
+                    brand_name: brand.name,
+                    sold_quantity: 0,
+                    revenue: 0,
+                    percent: 0,
+                };
+            }
+
+            result[brandId].sold_quantity += quantity;
+            result[brandId].revenue += revenue;
+
+            totalRevenue += revenue;
+        });
+    });
+
+    const data = Object.values(result)
+        .map(item => ({
+            ...item,
+            percent: totalRevenue
+                ? Math.round((item.revenue / totalRevenue) * 100)
+                : 0,
+        }))
+        .sort((a, b) => b.revenue - a.revenue);
+
+    return {
+        period,
+
+        current_period: {
+            from_date,
+            to_date,
+        },
+
+        total_revenue: totalRevenue,
+
+        data,
+    };
+};
+
+const getRevenueByCategory = async (query) => {
+    const {
+        period,
+        fromDate,
+        toDate,
+        from_date,
+        to_date,
+    } = getReportDateRange(query);
+
+    const orders = await Order.findAll({
+        where: {
+            status: orderStatus.COMPLETED,
+            updated_at: {
+                [Op.gte]: fromDate,
+                [Op.lte]: toDate,
+            },
+        },
+        attributes: ["id"],
+        include: [
+            {
+                model: OrderItem,
+                as: "items",
+                attributes: ['id', 'product_variant_id', 'quantity', 'price'],
+                include: [
+                    {
+                        model: ProductVariant,
+                        as: "variant",
+                        attributes: ['id', 'product_id'],
+                        include: [
+                            {
+                                model: Product,
+                                as: "product",
+                                attributes: ['id', 'name', 'thumbnail', 'brand_id'],
+                                include: [
+                                    {
+                                        model: Category,
+                                        as: "category",
+                                        attributes: ['id', 'name'],
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+    });
+
+    const result = {};
+    let totalRevenue = 0;
+
+    orders.forEach(order => {
+        order.items.forEach(item => {
+            const category = item.variant?.product?.category
+            if (!category) return;
+
+            const categoryId = category.id;
+            const quantity = Number(item.quantity || 0);
+            const revenue = Number(item.price || 0) * quantity;
+
+            if (!result[categoryId]) {
+                result[categoryId] = {
+                    category_id: category.id,
+                    category_name: category.name,
+                    sold_quantity: 0,
+                    revenue: 0,
+                    percent: 0,
+                };
+            }
+
+            result[categoryId].sold_quantity += quantity;
+            result[categoryId].revenue += revenue;
+
+            totalRevenue += revenue;
+        });
+    });
+
+    const data = Object.values(result)
+        .map(item => ({
+            ...item,
+            percent: totalRevenue
+                ? Math.round((item.revenue / totalRevenue) * 100)
+                : 0,
+        }))
+        .sort((a, b) => b.revenue - a.revenue);
+
+    return {
+        period,
+
+        current_period: {
+            from_date,
+            to_date,
+        },
+
+        total_revenue: totalRevenue,
+
+        data,
+    };
+};
+
 module.exports = {
     getRevenueSummary,
     getRevenueByProduct,
+    getRevenueByBrand,
+    getRevenueByCategory,
 };
