@@ -36,4 +36,10 @@ router.get("/revenue-order",
     reportController.getRevenueOrders
 );
 
+router.get("/revenue-excel",
+    authenticate,
+    authorizeRoles(ROLES.ADMIN), 
+    reportController.exportRevenueExcel
+);
+
 module.exports = router;

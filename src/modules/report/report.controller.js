@@ -1,5 +1,7 @@
 const reportService = require("./report.service");
 
+const { buildRevenueExcel } = require('./report.excel');
+
 const getRevenueSummary = async (req, res) => {
     try {
         const data = await reportService.getRevenueSummary(req.query);
@@ -85,10 +87,43 @@ const getRevenueOrders = async (req, res) => {
     }
 };
 
+const exportRevenueExcel = async (req, res) => {
+    try {
+        const summary = await reportService.getRevenueSummary(req.query);
+
+        const products = await reportService.getRevenueByProduct({
+            ...req.query,
+            limit: 10,
+        });
+
+        const brands = await reportService.getRevenueByBrand(req.query);
+
+        const categories = await reportService.getRevenueByCategory(req.query);
+
+        const orders = await reportService.getRevenueOrders(req.query);
+
+        await buildRevenueExcel({
+            summary,
+            products,
+            brands,
+            categories,
+            orders,
+            res,
+        });
+
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
 module.exports = {
     getRevenueSummary,
     getRevenueByProduct,
     getRevenueByBrand,
     getRevenueByCategory,
     getRevenueOrders,
+    exportRevenueExcel,
 };
