@@ -56,20 +56,12 @@ const getCart = async (userId) => {
         const total = finalPrice * quantity;
         totalPrice += total;
 
-        const stockError = quantity > variant.stock
-        if (stockError) hasStockError = true;
-
         return {
             id: item.id,
             quantity,
             price: finalPrice,
             original_price: variantPrice,
             total,
-
-            stock_error: stockError,
-            stock_message: item.quantity > variant.stock 
-                ? `Chỉ còn ${variant.stock} sản phẩm` 
-                : null,
 
             product: {
                 id: product.id,
