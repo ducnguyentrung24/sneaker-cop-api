@@ -56,12 +56,20 @@ const getCart = async (userId) => {
         const total = finalPrice * quantity;
         totalPrice += total;
 
+        const stockError = quantity > variant.stock
+        if (stockError) hasStockError = true;
+
         return {
             id: item.id,
             quantity,
             price: finalPrice,
             original_price: variantPrice,
             total,
+
+            stock_error: stockError,
+            stock_message: item.quantity > variant.stock 
+                ? `Chỉ còn ${variant.stock} sản phẩm` 
+                : null,
 
             product: {
                 id: product.id,
@@ -167,7 +175,8 @@ const updateQuantity = async (userId, cartItemId, data) => {
     if (!cartItem) throw new Error("Cart item not found");
     if (cartItem.Cart.user_id !== userId) throw new Error("Unauthorized");
     // Check stock
-    if (quantity > cartItem.variant.stock) throw new Error("Quantity exceeds available stock");
+    const currentQuantity = cartItem.quantity;
+    if (quantity > currentQuantity && quantity > cartItem.variant.stock) throw new Error("Quantity exceeds available stock");
 
     // Update quantity
     await cartItem.update({ quantity });
