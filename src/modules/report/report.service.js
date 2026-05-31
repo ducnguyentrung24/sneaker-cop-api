@@ -80,16 +80,61 @@ const getReportDateRange = (query) => {
     };
 };
 
-const getRevenueSummary = async (query) => {
-    const {
-        period,
-        fromDate,
-        toDate,
-        from_date,
-        to_date,
-    } = getReportDateRange(query);
+const getPreviousReportDateRange = ({ period, fromDate }) => {
+    let previousFromDate, previousToDate;
 
-    const totalRevenue = await Order.sum("total_price", {
+    if (period === 'month') {
+        previousFromDate = new Date(
+            fromDate.getFullYear(),
+            fromDate.getMonth() - 1,
+        );
+        previousFromDate.setHours(0, 0, 0, 0);
+
+        previousToDate = new Date(
+            fromDate.getFullYear(),
+            fromDate.getMonth(),
+            0,
+        );
+
+        previousToDate.setHours(23, 59, 59, 999);
+    }
+
+    if (period === 'quarter') {
+        previousFromDate = new Date(fromDate);
+        previousFromDate.setMonth(previousFromDate.getMonth() - 3);
+        previousFromDate.setHours(0, 0, 0, 0);
+
+        previousToDate = new Date(fromDate);
+        previousToDate.setDate(previousToDate.getDate() - 1);
+        previousToDate.setHours(23, 59, 59, 999);
+    }
+
+    if (period === 'year') {
+        previousFromDate = new Date(
+            fromDate.getFullYear() - 1,
+            0,
+            1
+        );
+        previousFromDate.setHours(0, 0, 0, 0);
+
+        previousToDate = new Date(
+            fromDate.getFullYear() - 1,
+            11,
+            31
+        );
+        previousToDate.setHours(23, 59, 59, 999);
+    }
+
+    return {
+        previousFromDate,
+        previousToDate,
+        previous_from_date: formatDate(previousFromDate),
+        previous_to_date: formatDate(previousToDate),
+    };
+};
+
+const getRevenueStatsByRange = async (fromDate, toDate) => {
+    const totalRevenue = await Order.sum("final_price", {
         where: {
             status: orderStatus.COMPLETED,
             updated_at: {
@@ -110,6 +155,56 @@ const getRevenueSummary = async (query) => {
     });
 
     return {
+        total_revenue: Number(totalRevenue || 0),
+        total_orders: totalOrders,
+        average_order_value: totalOrders
+            ? Math.round(Number(totalRevenue || 0) / totalOrders)
+            : 0,
+    }
+};
+
+const calculateGrowthRate = (currentValue, previousValue) => {
+    if (previousValue === 0) return currentValue > 0 ? 100 : 0;
+    return Number(((currentValue - previousValue) / previousValue * 100).toFixed(2));
+};
+
+const getTrend = (value) => {
+    if (value > 0) return "increase";
+    if (value < 0) return "decrease";
+    return "stable";
+};
+
+
+const getRevenueSummary = async (query) => {
+    const {
+        period,
+        fromDate,
+        toDate,
+        from_date,
+        to_date,
+    } = getReportDateRange(query);
+
+    const {
+        previousFromDate,
+        previousToDate,
+        previous_from_date,
+        previous_to_date,
+    } = getPreviousReportDateRange({
+        period,
+        fromDate,
+        toDate,
+    });
+
+    const currentStats = await getRevenueStatsByRange(fromDate, toDate);
+    const previousStats = await getRevenueStatsByRange(previousFromDate, previousToDate);
+
+    const revenueDifference = currentStats.total_revenue - previousStats.total_revenue;
+    const ordersDifference = currentStats.total_orders - previousStats.total_orders;
+    
+    const revenueGrowthRate = calculateGrowthRate(currentStats.total_revenue, previousStats.total_revenue);
+    const orderGrowthRate = calculateGrowthRate(currentStats.total_orders, previousStats.total_orders);
+
+    return {
         period,
 
         current_period: {
@@ -117,21 +212,35 @@ const getRevenueSummary = async (query) => {
             to_date,
         },
 
+        previous_period: {
+            from_date: previous_from_date,
+            to_date: previous_to_date,
+        },
+
         summary: {
-            total_revenue: Number(totalRevenue || 0),
-            total_orders: totalOrders,
-            average_order_value: totalOrders
-                ? Math.round(Number(totalRevenue || 0) / totalOrders)
-                : 0,
+            total_revenue: currentStats.total_revenue,
+            total_orders: currentStats.total_orders,
+            average_order_value: currentStats.average_order_value,
+        },
+
+        camparison: {
+            previous_revenue: previousStats.total_revenue,
+            previous_orders: previousStats.total_orders,
+
+            revenue_difference: revenueDifference,
+            orders_difference: ordersDifference,
+
+            revenue_growth_rate: revenueGrowthRate,
+            order_growth_rate: orderGrowthRate,
+
+            revenue_trend: getTrend(revenueGrowthRate),
+            order_trend: getTrend(orderGrowthRate),
         },
     };
 };
 
 const getRevenueByProduct = async (query) => {
-    const {
-        limit = 10,
-    } = query;
-
+    const { limit = 10 } = query;
     const limitNumber = Number(limit) || 10;
 
     const {

@@ -8,6 +8,8 @@ const COLORS = {
     GRAY: 'FFF3F4F6',
     BORDER: 'FFE5E7EB',
     TEXT_GRAY: 'FF6B7280',
+    GREEN: 'FF16A34A',
+    RED: 'FFDC2626',
 };
 
 const formatCurrency = (value) => {
@@ -20,26 +22,53 @@ const formatDateTime = (date) => {
     return new Date(date).toLocaleString('vi-VN');
 };
 
-const styleTitleCell = (cell) => {
-    cell.font = {
-        bold: true,
-        size: 18,
-        color: { argb: COLORS.WHITE },
-    };
+const getTrendText = (trend) => {
+    if (trend === 'increase') return 'Tăng';
+    if (trend === 'decrease') return 'Giảm';
+    return 'Không đổi';
+};
 
-    cell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: COLORS.BLACK },
-    };
+const setColumnWidths = (worksheet, widths) => {
+    widths.forEach((width, index) => {
+        worksheet.getColumn(index + 1).width = width;
+    });
+};
 
-    cell.alignment = {
-        vertical: 'middle',
-        horizontal: 'center',
+const applyBorder = (cell) => {
+    cell.border = {
+        top: { style: 'thin', color: { argb: COLORS.BORDER } },
+        left: { style: 'thin', color: { argb: COLORS.BORDER } },
+        bottom: { style: 'thin', color: { argb: COLORS.BORDER } },
+        right: { style: 'thin', color: { argb: COLORS.BORDER } },
     };
 };
 
+const styleTitleRow = (row) => {
+    row.height = 28;
+
+    row.eachCell(cell => {
+        cell.font = {
+            bold: true,
+            size: 16,
+            color: { argb: COLORS.WHITE },
+        };
+
+        cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: COLORS.BLACK },
+        };
+
+        cell.alignment = {
+            vertical: 'middle',
+            horizontal: 'center',
+        };
+    });
+};
+
 const styleTableHeader = (row) => {
+    row.height = 22;
+
     row.eachCell(cell => {
         cell.font = {
             bold: true,
@@ -57,98 +86,53 @@ const styleTableHeader = (row) => {
             horizontal: 'center',
         };
 
-        cell.border = {
-            top: { style: 'thin' },
-            left: { style: 'thin' },
-            bottom: { style: 'thin' },
-            right: { style: 'thin' },
-        };
+        applyBorder(cell);
     });
 };
 
 const styleBodyRow = (row) => {
     row.eachCell(cell => {
-        cell.border = {
-            top: { style: 'thin', color: { argb: COLORS.BORDER } },
-            left: { style: 'thin', color: { argb: COLORS.BORDER } },
-            bottom: { style: 'thin', color: { argb: COLORS.BORDER } },
-            right: { style: 'thin', color: { argb: COLORS.BORDER } },
-        };
+        applyBorder(cell);
 
         cell.alignment = {
             vertical: 'middle',
+            horizontal: 'left',
         };
     });
 };
 
-const styleInfoLabel = (cell) => {
-    cell.font = {
-        bold: true,
-        color: { argb: COLORS.BLACK },
-    };
+const styleInfoRow = (row) => {
+    row.eachCell((cell, colNumber) => {
+        applyBorder(cell);
 
-    cell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: COLORS.GRAY },
-    };
+        cell.alignment = {
+            vertical: 'middle',
+            horizontal: 'left',
+        };
 
-    cell.border = {
-        top: { style: 'thin', color: { argb: COLORS.BORDER } },
-        left: { style: 'thin', color: { argb: COLORS.BORDER } },
-        bottom: { style: 'thin', color: { argb: COLORS.BORDER } },
-        right: { style: 'thin', color: { argb: COLORS.BORDER } },
-    };
+        if (colNumber === 1) {
+            cell.font = {
+                bold: true,
+                color: { argb: COLORS.BLACK },
+            };
 
-    cell.alignment = {
-        vertical: 'middle',
-        horizontal: 'left',
-    };
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: COLORS.GRAY },
+            };
+        }
+    });
 };
 
-const styleInfoValue = (cell) => {
-    cell.font = {
-        color: { argb: COLORS.BLACK },
-    };
+const styleKpiRow = (row) => {
+    row.eachCell(cell => {
+        applyBorder(cell);
 
-    cell.border = {
-        top: { style: 'thin', color: { argb: COLORS.BORDER } },
-        left: { style: 'thin', color: { argb: COLORS.BORDER } },
-        bottom: { style: 'thin', color: { argb: COLORS.BORDER } },
-        right: { style: 'thin', color: { argb: COLORS.BORDER } },
-    };
-
-    cell.alignment = {
-        vertical: 'middle',
-        horizontal: 'left',
-    };
-};
-
-const styleKpiBox = (
-    worksheet,
-    labelRange,
-    valueRange,
-    labelCell,
-    valueCell
-) => {
-    worksheet.mergeCells(labelRange);
-    worksheet.mergeCells(valueRange);
-
-    const label = worksheet.getCell(labelCell);
-    const value = worksheet.getCell(valueCell);
-
-    [label, value].forEach(cell => {
         cell.fill = {
             type: 'pattern',
             pattern: 'solid',
             fgColor: { argb: COLORS.LIGHT_ORANGE },
-        };
-
-        cell.border = {
-            top: { style: 'thin', color: { argb: COLORS.ORANGE } },
-            left: { style: 'thin', color: { argb: COLORS.ORANGE } },
-            bottom: { style: 'thin', color: { argb: COLORS.ORANGE } },
-            right: { style: 'thin', color: { argb: COLORS.ORANGE } },
         };
 
         cell.alignment = {
@@ -156,18 +140,10 @@ const styleKpiBox = (
             horizontal: 'center',
         };
     });
+};
 
-    label.font = {
-        bold: true,
-        size: 11,
-        color: { argb: 'FF9A3412' },
-    };
-
-    value.font = {
-        bold: true,
-        size: 14,
-        color: { argb: COLORS.BLACK },
-    };
+const addEmptyRow = (worksheet) => {
+    worksheet.addRow([]);
 };
 
 const addSummarySheet = (workbook, summary) => {
@@ -179,102 +155,178 @@ const addSummarySheet = (workbook, summary) => {
         },
     ];
 
-    worksheet.columns = [
-        { width: 22 },
-        { width: 22 },
-        { width: 22 },
-        { width: 22 },
-        { width: 22 },
-        { width: 22 },
+    setColumnWidths(worksheet, [32, 30, 30, 30]);
+
+    const titleRow = worksheet.addRow([
+        'BÁO CÁO DOANH THU',
+        '',
+        '',
+        '',
+    ]);
+
+    styleTitleRow(titleRow);
+
+    addEmptyRow(worksheet);
+
+    const infoRows = [
+        [
+            'Loại báo cáo',
+            summary.period?.toUpperCase() || '',
+            '',
+            '',
+        ],
+        [
+            'Thời gian báo cáo',
+            `${summary.current_period?.from_date || ''} đến ${summary.current_period?.to_date || ''}`,
+            '',
+            '',
+        ],
+        [
+            'Ngày xuất báo cáo',
+            new Date().toLocaleString('vi-VN'),
+            '',
+            '',
+        ],
     ];
 
-    // Title
-    worksheet.mergeCells('A1:F2');
-    worksheet.getCell('A1').value = 'BÁO CÁO DOANH THU';
-    styleTitleCell(worksheet.getCell('A1'));
-
-    worksheet.getRow(1).height = 28;
-    worksheet.getRow(2).height = 28;
-
-    // Report info
-    worksheet.mergeCells('A4:B4');
-    worksheet.getCell('A4').value = 'Loại báo cáo';
-
-    worksheet.mergeCells('C4:F4');
-    worksheet.getCell('C4').value = summary.period.toUpperCase();
-
-    worksheet.mergeCells('A5:B5');
-    worksheet.getCell('A5').value = 'Thời gian báo cáo';
-
-    worksheet.mergeCells('C5:F5');
-    worksheet.getCell('C5').value =
-        `${summary.current_period.from_date} đến ${summary.current_period.to_date}`;
-
-    worksheet.mergeCells('A6:B6');
-    worksheet.getCell('A6').value = 'Ngày xuất báo cáo';
-
-    worksheet.mergeCells('C6:F6');
-    worksheet.getCell('C6').value = new Date().toLocaleString('vi-VN');
-
-    ['A4', 'A5', 'A6'].forEach(cell => {
-        styleInfoLabel(worksheet.getCell(cell));
+    infoRows.forEach(rowData => {
+        const row = worksheet.addRow(rowData);
+        styleInfoRow(row);
     });
 
-    ['C4', 'C5', 'C6'].forEach(cell => {
-        styleInfoValue(worksheet.getCell(cell));
+    addEmptyRow(worksheet);
+
+    const kpiHeaderRow = worksheet.addRow([
+        'Tổng doanh thu',
+        'Tổng đơn hoàn thành',
+        'Giá trị trung bình / đơn',
+        '',
+    ]);
+
+    styleKpiRow(kpiHeaderRow);
+
+    kpiHeaderRow.eachCell(cell => {
+        cell.font = {
+            bold: true,
+            color: { argb: 'FF9A3412' },
+        };
     });
 
-    // KPI 1
-    worksheet.getCell('A8').value = 'Tổng doanh thu';
-    worksheet.getCell('A9').value = formatCurrency(
-        summary.summary.total_revenue
-    );
-    worksheet.getCell('A9').numFmt = '#,##0 "VND"';
+    const kpiValueRow = worksheet.addRow([
+        formatCurrency(summary.summary?.total_revenue),
+        summary.summary?.total_orders || 0,
+        formatCurrency(summary.summary?.average_order_value),
+        '',
+    ]);
 
-    styleKpiBox(
-        worksheet,
-        'A8:B8',
-        'A9:B10',
-        'A8',
-        'A9'
-    );
+    styleKpiRow(kpiValueRow);
 
-    // KPI 2
-    worksheet.getCell('C8').value = 'Tổng đơn hoàn thành';
-    worksheet.getCell('C9').value = summary.summary.total_orders;
+    kpiValueRow.eachCell(cell => {
+        cell.font = {
+            bold: true,
+            size: 13,
+            color: { argb: COLORS.BLACK },
+        };
+    });
 
-    styleKpiBox(
-        worksheet,
-        'C8:D8',
-        'C9:D10',
-        'C8',
-        'C9'
-    );
+    worksheet.getCell(`A${kpiValueRow.number}`).numFmt = '#,##0 "VND"';
+    worksheet.getCell(`C${kpiValueRow.number}`).numFmt = '#,##0 "VND"';
 
-    // KPI 3
-    worksheet.getCell('E8').value = 'Giá trị trung bình / đơn';
-    worksheet.getCell('E9').value = formatCurrency(
-        summary.summary.average_order_value
-    );
-    worksheet.getCell('E9').numFmt = '#,##0 "VND"';
+    addEmptyRow(worksheet);
 
-    styleKpiBox(
-        worksheet,
-        'E8:F8',
-        'E9:F10',
-        'E8',
-        'E9'
-    );
+    const compareTitleRow = worksheet.addRow([
+        'SO SÁNH VỚI KỲ TRƯỚC',
+        '',
+        '',
+        '',
+    ]);
 
-    worksheet.getRow(8).height = 24;
-    worksheet.getRow(9).height = 28;
-    worksheet.getRow(10).height = 12;
+    styleTableHeader(compareTitleRow);
 
-    // Note
-    worksheet.mergeCells('A13:F13');
-    worksheet.getCell('A13').value =
-        'Ghi chú: Doanh thu được tính từ các đơn hàng đã hoàn thành trong kỳ báo cáo.';
-    worksheet.getCell('A13').font = {
+    const comparisonRows = [
+        [
+            'Thời gian kỳ trước',
+            summary.previous_period
+                ? `${summary.previous_period.from_date} đến ${summary.previous_period.to_date}`
+                : '',
+            '',
+            '',
+        ],
+        [
+            'Doanh thu kỳ trước',
+            formatCurrency(summary.comparison?.previous_revenue || 0),
+            '',
+            '',
+        ],
+        [
+            'Chênh lệch doanh thu',
+            formatCurrency(summary.comparison?.revenue_difference || 0),
+            '',
+            '',
+        ],
+        [
+            'Tỷ lệ tăng trưởng doanh thu',
+            `${summary.comparison?.revenue_growth_rate || 0}%`,
+            '',
+            '',
+        ],
+        [
+            'Xu hướng doanh thu',
+            getTrendText(summary.comparison?.revenue_trend),
+            '',
+            '',
+        ],
+        [
+            'Đơn hàng kỳ trước',
+            summary.comparison?.previous_orders || 0,
+            '',
+            '',
+        ],
+        [
+            'Tỷ lệ tăng trưởng đơn hàng',
+            `${summary.comparison?.order_growth_rate || 0}%`,
+            '',
+            '',
+        ],
+    ];
+
+    comparisonRows.forEach((rowData, index) => {
+        const row = worksheet.addRow(rowData);
+        styleInfoRow(row);
+
+        if (index === 1 || index === 2) {
+            worksheet.getCell(`B${row.number}`).numFmt = '#,##0 "VND"';
+        }
+
+        if (index === 4) {
+            const trend = summary.comparison?.revenue_trend;
+
+            if (trend === 'increase') {
+                worksheet.getCell(`B${row.number}`).font = {
+                    bold: true,
+                    color: { argb: COLORS.GREEN },
+                };
+            }
+
+            if (trend === 'decrease') {
+                worksheet.getCell(`B${row.number}`).font = {
+                    bold: true,
+                    color: { argb: COLORS.RED },
+                };
+            }
+        }
+    });
+
+    addEmptyRow(worksheet);
+
+    const noteRow = worksheet.addRow([
+        'Ghi chú: Doanh thu được tính từ các đơn hàng đã hoàn thành trong kỳ báo cáo.',
+        '',
+        '',
+        '',
+    ]);
+
+    noteRow.getCell(1).font = {
         italic: true,
         color: { argb: COLORS.TEXT_GRAY },
     };
@@ -290,20 +342,25 @@ const addProductSheet = (workbook, products) => {
         },
     ];
 
-    worksheet.mergeCells('A1:D1');
-    worksheet.getCell('A1').value = 'DOANH THU THEO SẢN PHẨM';
-    styleTitleCell(worksheet.getCell('A1'));
+    setColumnWidths(worksheet, [8, 45, 18, 24]);
 
-    worksheet.getRow(1).height = 28;
+    const titleRow = worksheet.addRow([
+        'DOANH THU THEO SẢN PHẨM',
+        '',
+        '',
+        '',
+    ]);
 
-    worksheet.addRow([
+    styleTitleRow(titleRow);
+
+    const headerRow = worksheet.addRow([
         'STT',
         'Sản phẩm',
         'Số lượng bán',
         'Doanh thu',
     ]);
 
-    styleTableHeader(worksheet.getRow(2));
+    styleTableHeader(headerRow);
 
     products.data.forEach((item, index) => {
         const row = worksheet.addRow([
@@ -317,13 +374,6 @@ const addProductSheet = (workbook, products) => {
     });
 
     worksheet.getColumn(4).numFmt = '#,##0 "VND"';
-
-    worksheet.columns = [
-        { width: 8 },
-        { width: 42 },
-        { width: 18 },
-        { width: 22 },
-    ];
 
     worksheet.autoFilter = {
         from: 'A2',
@@ -341,13 +391,19 @@ const addBrandSheet = (workbook, brands) => {
         },
     ];
 
-    worksheet.mergeCells('A1:E1');
-    worksheet.getCell('A1').value = 'DOANH THU THEO THƯƠNG HIỆU';
-    styleTitleCell(worksheet.getCell('A1'));
+    setColumnWidths(worksheet, [8, 30, 18, 24, 16]);
 
-    worksheet.getRow(1).height = 28;
+    const titleRow = worksheet.addRow([
+        'DOANH THU THEO THƯƠNG HIỆU',
+        '',
+        '',
+        '',
+        '',
+    ]);
 
-    worksheet.addRow([
+    styleTitleRow(titleRow);
+
+    const headerRow = worksheet.addRow([
         'STT',
         'Thương hiệu',
         'Số lượng bán',
@@ -355,7 +411,7 @@ const addBrandSheet = (workbook, brands) => {
         'Tỷ lệ (%)',
     ]);
 
-    styleTableHeader(worksheet.getRow(2));
+    styleTableHeader(headerRow);
 
     brands.data.forEach((item, index) => {
         const row = worksheet.addRow([
@@ -370,14 +426,6 @@ const addBrandSheet = (workbook, brands) => {
     });
 
     worksheet.getColumn(4).numFmt = '#,##0 "VND"';
-
-    worksheet.columns = [
-        { width: 8 },
-        { width: 28 },
-        { width: 18 },
-        { width: 22 },
-        { width: 15 },
-    ];
 
     worksheet.autoFilter = {
         from: 'A2',
@@ -395,13 +443,19 @@ const addCategorySheet = (workbook, categories) => {
         },
     ];
 
-    worksheet.mergeCells('A1:E1');
-    worksheet.getCell('A1').value = 'DOANH THU THEO DANH MỤC';
-    styleTitleCell(worksheet.getCell('A1'));
+    setColumnWidths(worksheet, [8, 30, 18, 24, 16]);
 
-    worksheet.getRow(1).height = 28;
+    const titleRow = worksheet.addRow([
+        'DOANH THU THEO DANH MỤC',
+        '',
+        '',
+        '',
+        '',
+    ]);
 
-    worksheet.addRow([
+    styleTitleRow(titleRow);
+
+    const headerRow = worksheet.addRow([
         'STT',
         'Danh mục',
         'Số lượng bán',
@@ -409,7 +463,7 @@ const addCategorySheet = (workbook, categories) => {
         'Tỷ lệ (%)',
     ]);
 
-    styleTableHeader(worksheet.getRow(2));
+    styleTableHeader(headerRow);
 
     categories.data.forEach((item, index) => {
         const row = worksheet.addRow([
@@ -424,14 +478,6 @@ const addCategorySheet = (workbook, categories) => {
     });
 
     worksheet.getColumn(4).numFmt = '#,##0 "VND"';
-
-    worksheet.columns = [
-        { width: 8 },
-        { width: 28 },
-        { width: 18 },
-        { width: 22 },
-        { width: 15 },
-    ];
 
     worksheet.autoFilter = {
         from: 'A2',
@@ -449,13 +495,22 @@ const addOrderSheet = (workbook, orders) => {
         },
     ];
 
-    worksheet.mergeCells('A1:H1');
-    worksheet.getCell('A1').value = 'DANH SÁCH ĐƠN HÀNG HOÀN THÀNH';
-    styleTitleCell(worksheet.getCell('A1'));
+    setColumnWidths(worksheet, [8, 24, 28, 18, 22, 16, 20, 26]);
 
-    worksheet.getRow(1).height = 28;
+    const titleRow = worksheet.addRow([
+        'DANH SÁCH ĐƠN HÀNG HOÀN THÀNH',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+    ]);
 
-    worksheet.addRow([
+    styleTitleRow(titleRow);
+
+    const headerRow = worksheet.addRow([
         'STT',
         'Mã đơn',
         'Người nhận',
@@ -466,7 +521,7 @@ const addOrderSheet = (workbook, orders) => {
         'Ngày hoàn thành',
     ]);
 
-    styleTableHeader(worksheet.getRow(2));
+    styleTableHeader(headerRow);
 
     orders.data.forEach((order, index) => {
         const row = worksheet.addRow([
@@ -484,17 +539,6 @@ const addOrderSheet = (workbook, orders) => {
     });
 
     worksheet.getColumn(5).numFmt = '#,##0 "VND"';
-
-    worksheet.columns = [
-        { width: 8 },
-        { width: 22 },
-        { width: 25 },
-        { width: 18 },
-        { width: 20 },
-        { width: 15 },
-        { width: 18 },
-        { width: 25 },
-    ];
 
     worksheet.autoFilter = {
         from: 'A2',
@@ -521,7 +565,9 @@ const buildRevenueExcel = async ({
     addCategorySheet(workbook, categories);
     addOrderSheet(workbook, orders);
 
-    const fileName = `revenue-report-${summary.current_period.from_date}-${summary.current_period.to_date}.xlsx`;
+    const fileName = `bao-cao-doanh-thu-${summary.period}-${Date.now()}.xlsx`;
+
+    const buffer = await workbook.xlsx.writeBuffer();
 
     res.setHeader(
         'Content-Type',
@@ -533,8 +579,9 @@ const buildRevenueExcel = async ({
         `attachment; filename="${fileName}"`
     );
 
-    await workbook.xlsx.write(res);
-    res.end();
+    res.setHeader('Content-Length', buffer.length);
+
+    return res.end(Buffer.from(buffer));
 };
 
 module.exports = {
