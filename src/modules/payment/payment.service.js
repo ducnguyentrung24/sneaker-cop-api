@@ -50,7 +50,8 @@ const createPaymentUrl = async (orderId) => {
         vnp_Locale: 'vn',
         vnp_ReturnUrl: config.returnUrl,
         vnp_IpAddr: "127.0.0.1",
-        vnp_CreateDate: date
+        vnp_CreateDate: date,
+        vnp_BankCode: 'NCB',
     };
 
     const sorted = sortAndEncode(params);

@@ -23,9 +23,11 @@ const vnpayReturn = async (req, res) => {
 
         const success = result.payment_status === "PAID";
         if (success) {
+            const orderCode = result.order_code;
+            
             return res.redirect(
-                `${process.env.CLIENT_URL}/checkout/success?orderCode=${result.order_code}&clearCart=true`
-            );
+            `${process.env.CLIENT_URL}/checkout/success?orderCode=${encodeURIComponent(orderCode)}&clearCart=true`
+        );
         }
 
         return res.redirect(

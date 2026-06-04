@@ -21,7 +21,7 @@ const productSchema = Joi.object({
         "number.min": "Phần trăm giảm giá phải lớn hơn hoặc bằng 0",
         "number.max": "Phần trăm giảm giá phải nhỏ hơn hoặc bằng 100",
     }),
-    description: Joi.string().allow("").optional().messages({
+    description: Joi.string().allow(null, "").optional().messages({
         "string.base": "Mô tả phải là một chuỗi",
     }),
     thumbnail: Joi.string().required().messages({

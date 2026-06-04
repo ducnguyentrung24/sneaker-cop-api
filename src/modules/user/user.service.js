@@ -7,7 +7,7 @@ const getProfile = async (userId) => {
     const user = await User.findByPk(userId, {
         attributes: { exclude: ['password'] },
     }); 
-    if (!user) throw new Error('User not found');
+    if (!user) throw new Error('Không tìm thấy người dùng');
 
     return user;
 };
@@ -16,7 +16,7 @@ const updateProfile = async (userId, data) => {
     const { full_name, phone } = data;
 
     const user = await User.findByPk(userId);
-    if (!user) throw new Error('User not found');
+    if (!user) throw new Error('Không tìm thấy người dùng');
 
     await user.update({ 
         full_name,
@@ -35,16 +35,16 @@ const changePassword = async (userId, data) => {
     const { old_password, new_password } = data;
 
     const user = await User.findByPk(userId);
-    if (!user) throw new Error('User not found');
+    if (!user) throw new Error('Không tìm thấy người dùng');
 
     const isMatch = await comparePassword(old_password, user.password);
-    if (!isMatch) throw new Error('Old password is incorrect');
+    if (!isMatch) throw new Error('Mật khẩu hiện tại không chính xác');
 
     const hashedPassword = await hashPassword(new_password);
     await user.update({ password: hashedPassword });
 
     return {
-        message: 'Password changed successfully',
+        message: 'Đổi mật khẩu thành công',
     }
 };
 
@@ -123,7 +123,7 @@ const createUser = async (data) => {
     const { email, password, full_name, phone, role, is_active } = data;
 
     const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) throw new Error('Email already exists');
+    if (existingUser) throw new Error('Email nay đã được đăng ký');
 
     const hashedPassword = await hashPassword(password);
 
@@ -151,7 +151,7 @@ const updateUser = async (userId, data) => {
     const { full_name, phone, role } = data;
 
     const user = await User.findByPk(userId);
-    if (!user) throw new Error('User not found');
+    if (!user) throw new Error('Khong tìm thấy người dùng');
 
     if (full_name !== undefined) user.full_name = full_name;
     if (phone !== undefined) user.phone = phone || null;
@@ -173,7 +173,7 @@ const updateUser = async (userId, data) => {
 
 const updateUserStatus = async (userId, is_active) => {
     const user = await User.findByPk(userId);
-    if (!user) throw new Error('User not found');
+    if (!user) throw new Error('Không tìm thấy người dùng');
 
     await user.update({ is_active });
 

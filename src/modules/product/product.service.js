@@ -173,7 +173,7 @@ const getProductById = async (productId, userId) => {
             { association: 'variants'}
         ]
     });
-    if (!product) throw new Error("Product not found");
+    if (!product) throw new Error("Không tìm thấy sản phẩm");
 
     if (userId) {
         await behaviorService.trackBehavior(
@@ -192,7 +192,7 @@ const createProduct = async (data) => {
         const { images, variants, ...productData } = data;
 
         // Check images
-        if (images && images.length > 4) throw new Error("Maximum 4 images allowed");
+        if (images && images.length > 4) throw new Error("Chỉ được phép tối đa 4 hình ảnh");
 
         // Check for duplicate name
         if (productData.name) {
@@ -202,7 +202,7 @@ const createProduct = async (data) => {
                 }
             });
 
-            if (existingProduct) throw new Error("Product name already exists");
+            if (existingProduct) throw new Error("Tên sản phẩm đã tồn tại");
         }
 
         // Calculate final price
@@ -223,7 +223,7 @@ const createProduct = async (data) => {
 
         // Create variants
         if (variants) {
-            if (!Array.isArray(variants)) throw new Error("Variants must be an array");
+            if (!Array.isArray(variants)) throw new Error("Biển thể phải là một mảng");
 
             if (variants.length) {
                 // Check for duplicate variants
@@ -231,7 +231,7 @@ const createProduct = async (data) => {
 
                 for (const variant of variants) {
                     const key = `${variant.color}-${variant.size}`;
-                    if (seen.has(key)) throw new Error(`Duplicate variant: ${key}`);
+                    if (seen.has(key)) throw new Error(`Trùng lặp biến thể: ${key}`);
 
                     seen.add(key);
                 }
@@ -256,12 +256,12 @@ const createProduct = async (data) => {
 const updateProduct = async (productId, data) => {
     return await sequelize.transaction(async (transaction) => {
         const product = await Product.findByPk(productId, { transaction });
-        if (!product) throw new Error("Product not found");
+        if (!product) throw new Error("Không tìm thấy sản phẩm");
 
         const { images, variants, ...productData } = data;
 
         // Check images
-        if (images && images.length > 4) throw new Error("Maximum 4 images allowed");
+        if (images && images.length > 4) throw new Error("Chỉ được phép tối đa 4 hình ảnh");
 
         // Check for duplicate name
         if (productData.name) {
@@ -272,7 +272,7 @@ const updateProduct = async (productId, data) => {
                 }
             });
 
-            if (existingProduct) throw new Error("Product name already exists");
+            if (existingProduct) throw new Error("Tên sản phẩm đã tồn tại");
         }
 
         // Calculate final price update
@@ -304,14 +304,14 @@ const updateProduct = async (productId, data) => {
 
         // Update variants
         if (variants) {
-            if (!Array.isArray(variants)) throw new Error("Variants must be an array");
+            if (!Array.isArray(variants)) throw new Error("Biến thể phải là một mảng");
 
             // Check for duplicate variants
             const seen = new Set();
 
             for (const variant of variants) {
                 const key = `${variant.color}-${variant.size}`;
-                if (seen.has(key)) throw new Error(`Duplicate variant: ${key}`);
+                if (seen.has(key)) throw new Error(`Trung lặp biến thể: ${key}`);
 
                 seen.add(key);
             }
@@ -340,11 +340,11 @@ const updateProduct = async (productId, data) => {
 
 const deleteProduct = async (productId) => {
     const product = await Product.findByPk(productId);
-    if (!product) throw new Error("Product not found");
+    if (!product) throw new Error("Không tìm thấy sản phẩm");
 
     await product.destroy();
 
-    return { message: "Product deleted successfully" };
+    return { message: "Xóa thành công sản phẩm" };
 };
 
 module.exports = {

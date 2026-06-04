@@ -18,6 +18,17 @@ const { ORDER_FLOW } = require('../../constants/orderFlow.constant');
 const behaviorService = require("../behavior/behavior.service");
 const { behaviorTypes } = require('../../constants/behavior.constant');
 
+const calculatePurchasePrice = (variant, product) => {
+    const variantPrice = Number(variant.price || 0);
+    const discountPrice = Number(product.discount_percent || 0);
+
+    if (!discountPrice || discountPrice <= 0) return variantPrice;
+
+    const finalPrice = variantPrice * (1 - discountPrice / 100);
+
+    return Math.round(finalPrice);
+};
+
 const genrateOrderCode = () => {
     return `#ORD-${Date.now()}`;
 };
@@ -61,10 +72,15 @@ const processOrder = async ({
 
 
     for (const { variant, quantity } of items) {
-        if (!variant) throw new Error('Variant not found');
-        if (variant.stock < quantity) throw new Error('Out of stock');
+        if (!variant) throw new Error('Không tìm thấy biến thể sản phẩm');
+        if (variant.stock < quantity) throw new Error('Số lượng tồn kho không đủ');
 
-        const price = Number(variant.price);
+        const product = 
+            variant.product;
+            // await Product.findByPk(variant.product_id, { transaction });
+        if (!product) throw new Error('Không tìm thấy sản phẩm');
+
+        const price = calculatePurchasePrice(variant, product);
         total += price * quantity;
 
         await OrderItem.create({
@@ -99,10 +115,10 @@ const checkoutFromCart = async (userId, data) => {
         const { address_id, payment_method, note, selected_item_ids } = data;
 
         if (payment_method && !Object.values(paymentMethods).includes(payment_method)) {
-            throw new Error('Invalid payment method');
+            throw new Error('Phương thức thanh toán không hợp lệ');
         }
 
-        if (!selected_item_ids || !selected_item_ids.length) throw new Error('No items selected');
+        if (!selected_item_ids || !selected_item_ids.length) throw new Error('Không có sản phẩm nào được chọn');
 
         // Get cart
         const cart = await Cart.findOne({
@@ -113,23 +129,27 @@ const checkoutFromCart = async (userId, data) => {
                 include: {
                     model: ProductVariant,
                     as: 'variant',
+                    include: {
+                        model: Product,
+                        as: 'product',
+                    },
                 },
             },
             transaction,
         });
 
-        if (!cart || cart.items.length === 0) throw new Error('Cart is empty');
+        if (!cart || cart.items.length === 0) throw new Error('Giỏ hàng trống');
 
         // Get address
         const address = await Address.findByPk(address_id, { transaction });
-        if (!address) throw new Error('Address not found');
+        if (!address) throw new Error('Không tìm thấy địa chỉ');
         
         // Filter items
         const selectedItems = cart.items.filter(item =>
             selected_item_ids.includes(item.id)
         );
 
-        if (!selectedItems.length) throw new Error('Selected items not found');
+        if (!selectedItems.length) throw new Error('Không có sản phẩm nào được chọn');
 
         // Map items
         const items = selectedItems.map(item => ({
@@ -169,16 +189,23 @@ const checkoutFromBuyNow = async (userId, data) => {
         const { variant_id, quantity, address_id, payment_method, note } = data;
 
         if (payment_method && !Object.values(paymentMethods).includes(payment_method)) {
-            throw new Error('Invalid payment method');
+            throw new Error('Không tìm thấy phương thức thanh toán');
         }
 
-        if (quantity <= 0) throw new Error('Invalid quantity');
+        if (quantity <= 0) throw new Error('Số lượng không hợp lệ');
 
-        const variant = await ProductVariant.findByPk(variant_id, { transaction });
-        if (!variant) throw new Error('Variant not found');
+        const variant = await ProductVariant.findByPk(variant_id, {
+            include: {
+                model: Product,
+                as: 'product',
+            },
+            transaction,
+        });
+
+        if (!variant) throw new Error('Không tìm thấy biến thể sản phẩm');
 
         const address = await Address.findByPk(address_id, { transaction });
-        if (!address) throw new Error('Address not found');
+        if (!address) throw new Error('Không tìm thấy địa chỉ');
 
         // create order
         const order = await processOrder({
@@ -199,24 +226,31 @@ const checkoutFromReorder = async (userId, data) => {
         const { items, address_id, payment_method, note } = data;
 
         if (payment_method && !Object.values(paymentMethods).includes(payment_method)) {
-            throw new Error('Invalid payment method');
+            throw new Error('Phuong thức thanh toán không hợp lệ');
         }
 
-        if (!items || !items.length) throw new Error('No items to reorder');
+        if (!items || !items.length) throw new Error('Không có sản phẩm nào được chọn để đặt hàng lại');
 
         const address = await Address.findByPk(address_id, { transaction });
-        if (!address) throw new Error('Address not found');
+        if (!address) throw new Error('Không tìm thấy địa chỉ');
 
         const orderItems = [];
         for (const item of items) {
             const { variant_id, quantity } = item;
 
             if (!variant_id) throw new Error('Variant ID is required');
-            if (!quantity || quantity <= 0) throw new Error('Invalid quantity');
+            if (!quantity || quantity <= 0) throw new Error('Số luong không hợp lệ');
 
-            const variant = await ProductVariant.findByPk(variant_id, { transaction });
-            if (!variant) throw new Error('Product variant not found');
-            if (variant.stock < quantity) throw new Error('Out of stock');
+            const variant = await ProductVariant.findByPk(variant_id, { 
+                include: {
+                    model: Product,
+                    as: 'product',
+                },
+                transaction,
+            });
+
+            if (!variant) throw new Error('Không tìm thấy biến thể sản phẩm');
+            if (variant.stock < quantity) throw new Error('Số lượng tồn kho không đủ');
 
             orderItems.push({ variant, quantity });
         }
@@ -434,7 +468,7 @@ const cancelOrder = async (userId, orderId) => {
             transaction,
         });
 
-        if (!order) throw new Error('Order not found');
+        if (!order) throw new Error('Không tìm thấy đơn hàng');
         if (order.status !== orderStatus.PENDING && order.status !== orderStatus.PROCESSING) throw new Error('Only pending and processing orders can be cancelled');
 
         // Restore stock
@@ -616,7 +650,7 @@ const getAdminOrderDetail = async (orderId) => {
         ],
     });
 
-    if (!order) throw new Error('Order not found');
+    if (!order) throw new Error('Không tìm thấy đơn hàng');
 
     const formatted = {
         id: order.id,
@@ -705,12 +739,12 @@ const updateOrderStatus = async (orderId, adminId, data) => {
             transaction,
         });
 
-        if (!order) throw new Error('Order not found');
+        if (!order) throw new Error('Không tìm thấy đơn hàng');
 
         const currentStatus = order.status;
 
         const allowedStatuses = ORDER_FLOW[currentStatus] || [];
-        if (!allowedStatuses.includes(status)) throw new Error(`Cannot change status from ${currentStatus} to ${status}`);
+        if (!allowedStatuses.includes(status)) throw new Error(`Không thể chuyển trạng thái từ ${currentStatus} sang ${status}`);
 
         if (status === orderStatus.CANCELLED) {
             for (const item of order.items) {
@@ -767,7 +801,7 @@ const updateOrderStatus = async (orderId, adminId, data) => {
             from_status: currentStatus,
             to_status: status,
             changed_by: adminId,
-            note: note || `Status changed to ${status} by admin`,
+            note: note || `Đã chuyển trạng thái sang ${status} bởi admin`,
         }, { transaction });
 
         return order;
