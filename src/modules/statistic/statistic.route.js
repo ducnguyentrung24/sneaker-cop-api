@@ -1,51 +1,45 @@
 const express = require('express');
 const router = express.Router();
 
-const dashboardController = require('./dashboard.controller');
+const statisticController = require('./statistic.controller');
 
 const { authenticate, authorizeRoles } = require('../../middleware/auth.middleware');
 const { ROLES } = require('../../constants/role.constant');
 
-router.get('/',
+router.get('/summary',
     authenticate,
     authorizeRoles(ROLES.ADMIN),
-    dashboardController.getDashboardSummary
+    statisticController.getStatisticSummary
 );
 
-router.get('/revenue-statistics',
+router.get('/revenue-chart',
     authenticate,
     authorizeRoles(ROLES.ADMIN),
-    dashboardController.getRevenueStatistics
+    statisticController.getRevenueChart
 );
 
 router.get('/top-products',
     authenticate,
     authorizeRoles(ROLES.ADMIN),
-    dashboardController.getTopProducts
+    statisticController.getTopProducts
 );
 
-router.get('/low-stock',
+router.get('/revenue-categories',
     authenticate,
     authorizeRoles(ROLES.ADMIN),
-    dashboardController.getLowStockProducts
+    statisticController.getRevenueByCategory
 );
 
-router.get('/payment-statistics',
+router.get('/low-stock-products',
     authenticate,
     authorizeRoles(ROLES.ADMIN),
-    dashboardController.getPaymentStatistics
+    statisticController.getLowStockProducts
 );
 
-router.get('/category-statistics',
+router.get('/recent-orders',
     authenticate,
     authorizeRoles(ROLES.ADMIN),
-    dashboardController.getCategoryStatistics
-);
-
-router.get('/brand-statistics',
-    authenticate,
-    authorizeRoles(ROLES.ADMIN),
-    dashboardController.getBrandStatistics
+    statisticController.getRecentOrders
 );
 
 module.exports = router;

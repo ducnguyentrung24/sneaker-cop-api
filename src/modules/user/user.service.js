@@ -151,7 +151,7 @@ const updateUser = async (userId, data) => {
     const { full_name, phone, role } = data;
 
     const user = await User.findByPk(userId);
-    if (!user) throw new Error('Khong tìm thấy người dùng');
+    if (!user) throw new Error('Không tìm thấy người dùng');
 
     if (full_name !== undefined) user.full_name = full_name;
     if (phone !== undefined) user.phone = phone || null;

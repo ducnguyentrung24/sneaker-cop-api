@@ -31,8 +31,8 @@ const createSignature = (params) => {
 
 const createPaymentUrl = async (orderId) => {
     const order = await Order.findByPk(orderId);
-    if (!order) throw new Error('Order not found');
-    if (order.payment_status === paymentStatus.PAID) throw new Error('Order already paid');
+    if (!order) throw new Error('Không tìm thấy đơn hàng');
+    if (order.payment_status === paymentStatus.PAID) throw new Error('Đơn hàng đã được thanh toán');
 
     const date = moment().format('YYYYMMDDHHmmss');
 
@@ -73,7 +73,7 @@ const handleVnpayReturn = async (query) => {
         const sorted = sortAndEncode(vnp_Params);
         const signed = createSignature(sorted);
 
-        if (secureHash !== signed) throw new Error('Invalid signature');
+        if (secureHash !== signed) throw new Error('Chữ ký không hợp lệ');
 
         const orderCode = vnp_Params['vnp_TxnRef'].split('_')[0].trim();
         const order = await Order.findOne({
@@ -82,19 +82,18 @@ const handleVnpayReturn = async (query) => {
             lock: true,
         });
 
-        if (!order) throw new Error('Order not found');
+        if (!order) throw new Error('Không tìm thấy đơn hàng');
         if (order.payment_status === paymentStatus.PAID) return order;
 
         // Validate amount
         const vnpAmount = Number(vnp_Params['vnp_Amount']);
         const expectedAmount = Math.round(order.final_price * 100);
-        if (vnpAmount !== expectedAmount) throw new Error('Amount mismatch');
+        if (vnpAmount !== expectedAmount) throw new Error('Số tiền không khớp');
 
         // Update order
         if (vnp_Params['vnp_ResponseCode'] === '00') {
             await order.update({
                 payment_status: paymentStatus.PAID,
-                status: orderStatus.PROCESSING,
             }, { transaction });
 
             // Clear cart

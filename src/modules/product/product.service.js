@@ -25,7 +25,7 @@ const calculateFinalPrice = (base_price, discount_percent = 0) => {
 const applyFilter = (filter, where) => {
     switch (filter) {
         case "best_seller":
-            where.sold = { [Op.gte]: 100 };
+            where.sold = { [Op.gte]: 10 };
             break;
         case "discount":
             where.discount_percent = { 
