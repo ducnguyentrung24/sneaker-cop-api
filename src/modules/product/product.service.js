@@ -1,4 +1,4 @@
-const { Op } = require("sequelize");
+const { Op, fn, col } = require("sequelize");
 const { sequelize } = require("../../models");
 
 const Product = require("./product.model");
@@ -11,7 +11,7 @@ const Brand = require("../brand/brand.model");
 const behaviorService = require("../behavior/behavior.service");
 const { behaviorTypes } = require('../../constants/behavior.constant');
 
-const paresArray = (value) => {
+const parseArray = (value) => {
     if (!value) return [];
     if (Array.isArray(value)) return value.map(Number);
     if (typeof value === "string") return value.split(",").map(Number);
@@ -72,33 +72,38 @@ const getProducts = async (query) => {
     const offset = (pageNum - 1) * limitNum;
 
     const where = {};
-    
+
     // Search
-    if (search?.trim()) where.name = { [Op.iLike]: `%${search.trim()}%` };
+    if (search?.trim()) {
+        where.name = {
+            [Op.iLike]: `%${search.trim()}%`,
+        };
+    }
 
-    // Filter + Sort
-    const rawCategory = category_id || query['category_id[]'];
-    const rawBrand = brand_id || query['brand_id[]'];
+    // Filter category / brand
+    const rawCategory = category_id || query["category_id[]"];
+    const rawBrand = brand_id || query["brand_id[]"];
 
-    const categoryIds = paresArray(rawCategory);
-    const brandIds = paresArray(rawBrand);
+    const categoryIds = parseArray(rawCategory);
+    const brandIds = parseArray(rawBrand);
 
     if (categoryIds.length) where.category_id = { [Op.in]: categoryIds };
     if (brandIds.length) where.brand_id = { [Op.in]: brandIds };
-    
+
     if (min_discount_percent) {
-        where.discount_percent = { 
-            [Op.gte]: Number(min_discount_percent) 
+        where.discount_percent = {
+            [Op.gte]: Number(min_discount_percent),
         };
-    
     }
 
     if (min_price !== null || max_price !== null) {
         where.final_price = {};
 
-        if (min_price === null && max_price !== null) where.final_price[Op.lt] = Number(max_price);
-        else if (min_price !== null && max_price === null) where.final_price[Op.gt] = Number(min_price);
-        else if (min_price !== null && max_price !== null) {
+        if (min_price === null && max_price !== null) {
+            where.final_price[Op.lt] = Number(max_price);
+        } else if (min_price !== null && max_price === null) {
+            where.final_price[Op.gt] = Number(min_price);
+        } else if (min_price !== null && max_price !== null) {
             where.final_price[Op.gte] = Number(min_price);
             where.final_price[Op.lte] = Number(max_price);
         }
@@ -113,43 +118,63 @@ const getProducts = async (query) => {
         limit: limitNum,
         offset,
         order,
-        attributes: ["id", "thumbnail", "name", "base_price", "discount_percent", "final_price", "sold", 'category_id', 'brand_id'],
+        distinct: true,
+        attributes: ["id", "thumbnail", "name", "base_price", "discount_percent", "final_price", "sold", "category_id", "brand_id"],
+        include: [
+            {
+                model: Category,
+                as: "category",
+                attributes: ["id", "name"],
+            },
+            {
+                model: Brand,
+                as: "brand",
+                attributes: ["id", "name"],
+            },
+        ],
     });
 
-    const data = [];
+    const productIds = rows.map(product => product.id);
 
-    for (const product of rows) {
-        const category = await Category.findByPk(product.category_id, {
-            attributes: ["id", "name"]
+    let stockMap = new Map();
+
+    if (productIds.length > 0) {
+        const stockRows = await ProductVariant.findAll({
+            where: {
+                product_id: { [Op.in]: productIds },
+            },
+            attributes: ["product_id", [fn("SUM", col("stock")), "total_stock"]],
+            group: ["product_id"],
+            raw: true,
         });
-        const brand = await Brand.findByPk(product.brand_id, {
-            attributes: ["id", "name"]
-        });
 
-        const totalStock = await ProductVariant.sum("stock", {
-            where: { product_id: product.id }
-        });
-
-        data.push({
-            id: product.id,
-
-            thumbnail: product.thumbnail,
-            name: product.name,
-
-            base_price: product.base_price,
-            discount_percent: product.discount_percent,
-            final_price: product.final_price,
-
-            sold: Number(product.sold),
-            total_stock: Number(totalStock || 0),
-
-            category_id: product.category_id,
-            category_name: category?.name || null,
-
-            brand_id: product.brand_id,
-            brand_name: brand?.name || null,
-        });
+        stockMap = new Map(
+            stockRows.map(item => [
+                Number(item.product_id),
+                Number(item.total_stock || 0),
+            ])
+        );
     }
+
+    const data = rows.map(product => ({
+        id: product.id,
+
+        thumbnail: product.thumbnail,
+        name: product.name,
+
+        base_price: Number(product.base_price || 0),
+        discount_percent: Number(product.discount_percent || 0),
+        final_price: Number(product.final_price || 0),
+
+        sold: Number(product.sold || 0),
+        total_stock: stockMap.get(product.id) || 0,
+
+        category_id: product.category_id,
+        category_name: product.category?.name || null,
+
+        brand_id: product.brand_id,
+        brand_name: product.brand?.name || null,
+    }));
 
     const totalPages = Math.ceil(count / limitNum);
 
@@ -161,8 +186,8 @@ const getProducts = async (query) => {
             limit: limitNum,
             total_pages: totalPages,
             hasNext: pageNum < totalPages,
-            hasPrev: pageNum > 1
-        }
+            hasPrev: pageNum > 1,
+        },
     };
 };
 
