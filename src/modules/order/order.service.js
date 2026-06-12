@@ -41,8 +41,50 @@ const processOrder = async ({
     note,
     transaction
 }) => {
-    let total = 0;
+    if (!items || !items.length) throw new Error('Không có sản phẩm nào để đặt hàng');
 
+    // Group items by variant_id and sum quantity
+    const itemMap = new Map();
+    for (const item of items) {
+        const variantId = item.variant.id || item.variant_id;
+        const quantity = Number(item.quantity || 0);
+
+        if (!variantId) throw new Error('Không tìm thấy biến thể sản phẩm');
+        
+        if (!itemMap.has(variantId)) {
+            itemMap.set(variantId, {
+                variant_id: variantId,
+                quantity: 0,
+            });
+        }
+
+        itemMap.get(variantId).quantity += quantity;
+    }
+
+    // Check stock and get product info for each variant
+    const checkedItems = [];
+    for (const item of itemMap.values()) {
+        const variant = await ProductVariant.findByPk(item.variant_id, {
+            transaction,
+            lock: transaction.LOCK.UPDATE,
+        });
+        if (!variant) throw new Error('Không tìm thấy biến thể sản phẩm');
+
+        const product = await Product.findByPk(variant.product_id, { transaction });
+        if (!product) throw new Error('Không tìm thấy sản phẩm');
+
+        const currentStock = Number(variant.stock || 0);
+        if (currentStock <= 0) throw new Error(`Sản phẩm đã hết hàng`);
+        if (currentStock < item.quantity) throw new Error(`Chỉ còn ${currentStock} sản phẩm`);
+
+        checkedItems.push({
+            variant,
+            product,
+            quantity: item.quantity,
+        });
+    }
+
+    let total = 0; 
     const order = await Order.create({
         order_code: genrateOrderCode(),
         user_id: userId,
@@ -59,6 +101,7 @@ const processOrder = async ({
         status: orderStatus.PENDING,
 
         total_price: 0,
+        shipping_fee: 0,
         final_price: 0,
     }, { transaction });
 
@@ -67,18 +110,12 @@ const processOrder = async ({
         from_status: orderStatus.PENDING,
         to_status: orderStatus.PENDING,
         changed_by: userId,
-        note: 'Order created',
+        note: 'Đã tao đơn hàng',
     }, { transaction });
 
-
-    for (const { variant, quantity } of items) {
-        if (!variant) throw new Error('Không tìm thấy biến thể sản phẩm');
-        if (variant.stock < quantity) throw new Error('Số lượng tồn kho không đủ');
-
-        const product = 
-            variant.product;
-            // await Product.findByPk(variant.product_id, { transaction });
-        if (!product) throw new Error('Không tìm thấy sản phẩm');
+    // Create order items and decrease stock
+    for (const item of checkedItems) {
+        const { variant, product, quantity } = item;
 
         const price = calculatePurchasePrice(variant, product);
         total += price * quantity;
@@ -94,11 +131,11 @@ const processOrder = async ({
             stock: variant.stock - quantity,
         }, { transaction });
 
-        // Track behavior to purchase behavior
         await behaviorService.trackBehavior(
             userId,
             variant.product_id,
-            behaviorTypes.PURCHASE
+            behaviorTypes.PURCHASE,
+            transaction
         );
     }
 
