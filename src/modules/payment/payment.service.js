@@ -1,3 +1,5 @@
+const config = require('../../config/vnpay.config');
+
 const crypto = require('crypto');
 const qs = require('qs');
 const moment = require('moment');
@@ -7,10 +9,11 @@ const Order = require('../order/order.model');
 const OrderItem = require('../order/orderItem.model');
 const Cart = require('../cart/cart.model');
 const CartItem = require('../cart/cartItem.model');
+const ProductVariant = require('../product/productVariant.model');
+const OrderStatusLog = require('../order/orderStatusLog.model');
 
 const { paymentStatus } = require('../../constants/paymentMethod.constant');
 const { orderStatus } = require('../../constants/orderStatus.constant');
-const config = require('../../config/vnpay.config');
 
 const sortAndEncode = (params) => {
    let sorted = {};
@@ -83,7 +86,7 @@ const handleVnpayReturn = async (query) => {
         });
 
         if (!order) throw new Error('Không tìm thấy đơn hàng');
-        if (order.payment_status === paymentStatus.PAID) return order;
+        if (order.payment_status === paymentStatus.PAID || order.payment_status === paymentStatus.FAILED) return order;
 
         // Validate amount
         const vnpAmount = Number(vnp_Params['vnp_Amount']);
@@ -98,9 +101,7 @@ const handleVnpayReturn = async (query) => {
 
             // Clear cart
             const cart = await Cart.findOne({ 
-                where: {
-                    user_id: order.user_id
-                }, 
+                where: { user_id: order.user_id }, 
                 transaction,
             });
 
@@ -112,17 +113,51 @@ const handleVnpayReturn = async (query) => {
 
                 const variantIds = orderItems.map(item => item.product_variant_id);
 
-                await CartItem.destroy({
-                    where: {
-                        cart_id: cart.id,
-                        product_variant_id: variantIds,
-                    },
-                    transaction,
-                });
+                if (variantIds.length > 0) {
+                    await CartItem.destroy({
+                        where: {
+                            cart_id: cart.id,
+                            product_variant_id: variantIds,
+                        },
+                        transaction,
+                    });
+                }
             }
         } else {
+            const oldStatus = order.status;
+
             await order.update({
                 payment_status: paymentStatus.FAILED,
+                status: orderStatus.CANCELLED,
+            }, { transaction });
+
+            const orderItems = await OrderItem.findAll({
+                where: { order_id: order.id },
+                transaction,
+            });
+
+            for (const item of orderItems) {
+                const variant = await ProductVariant.findByPk(
+                    item.product_variant_id, 
+                    { 
+                        transaction,
+                        lock: transaction.LOCK.UPDATE,
+                    }
+                );
+
+                if (variant) {
+                    await variant.update({
+                        stock: Number(variant.stock || 0) + Number(item.quantity || 0),
+                    }, { transaction });
+                }
+            }
+
+            await OrderStatusLog.create({
+                order_id: order.id,
+                from_status: oldStatus,
+                to_status: orderStatus.CANCELLED,
+                changed_by: order.user_id,
+                note: 'Thanh toán VNPAY thất bại',
             }, { transaction });
         }
 
