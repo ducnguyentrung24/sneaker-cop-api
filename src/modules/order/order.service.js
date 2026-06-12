@@ -551,7 +551,7 @@ const getAllOrders = async (query) => {
         keyword,
         from_date,
         to_date,
-        sort = "created_at:desc",
+        sort = "updated_at:desc",
     } = query;
 
     const pageNumber = Number(page) || 1;
@@ -565,14 +565,10 @@ const getAllOrders = async (query) => {
     if (keyword) {
         where[Op.or] = [
             {
-                order_code: {
-                    [Op.iLike]: `%${keyword}%`
-                },
+                order_code: { [Op.iLike]: `%${keyword}%` },
             },
             {
-                receiver_name: {
-                    [Op.iLike]: `%${keyword}%`
-                },
+                receiver_name: { [Op.iLike]: `%${keyword}%` },
             },
         ]
     }
@@ -588,7 +584,7 @@ const getAllOrders = async (query) => {
         }
     }
 
-    let orderSort = [['created_at', 'DESC']];
+    let orderSort = [['updated_at', 'DESC']];
 
     if (sort) {
         const [field, direction] = sort.split(':');
@@ -597,7 +593,7 @@ const getAllOrders = async (query) => {
 
     const { count, rows } = await Order.findAndCountAll({
         where,
-        attributes: ['id', 'order_code', 'receiver_name', 'final_price', 'payment_status', 'status', 'created_at'],
+        attributes: ['id', 'order_code', 'receiver_name', 'final_price', 'payment_status', 'status', 'created_at', 'updated_at'],
         limit: limitNumber,
         offset,
         order: orderSort,
@@ -607,7 +603,8 @@ const getAllOrders = async (query) => {
         id: order.id,
         order_code: order.order_code,
         receiver_name: order.receiver_name,
-        order_date: order.created_at,
+        order_created_at: order.created_at,
+        order_updated_at: order.updated_at,
         total_price: order.final_price,
         payment_status: order.payment_status,
         status: order.status,
