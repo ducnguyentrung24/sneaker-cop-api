@@ -16,7 +16,7 @@ const createAddress = async (userId, data) => {
 
     const count = await Address.count({ where: { user_id: userId } });
 
-    if (count >= 5) throw new Error("You can only have up to 5 addresses");
+    if (count >= 5) throw new Error("Bạn chỉ có thể thêm tối đa 5 địa chỉ");
 
     if (is_default === true) {
         await Address.update(
@@ -42,7 +42,7 @@ const updateAddress = async (userId, addressId, data) => {
     const { receiver_name, phone, city, ward, detail_address, is_default } = data;
 
     const address = await Address.findByPk(addressId);
-    if (!address) throw new Error("Address not found");
+    if (!address) throw new Error("Không tìm thấy địa chỉ");
     if (address.user_id !== userId) throw new Error("Unauthorized");
 
     if (is_default === true) {
@@ -71,7 +71,7 @@ const updateAddress = async (userId, addressId, data) => {
 
 const setDefaultAddress = async (userId, addressId) => {
     const address = await Address.findByPk(addressId);
-    if (!address) throw new Error("Address not found");
+    if (!address) throw new Error("Không tìm thấy địa chỉ");
     if (address.user_id !== userId) throw new Error("Unauthorized");
 
     await Address.update(
@@ -91,7 +91,7 @@ const setDefaultAddress = async (userId, addressId) => {
 
 const deleteAddress = async (userId, addressId) => {
     const address = await Address.findByPk(addressId);
-    if (!address) throw new Error("Address not found");
+    if (!address) throw new Error("Không tìm thấy địa chỉ");
     if (address.user_id !== userId) throw new Error("Unauthorized");
 
     const wasDefault = address.is_default;
@@ -109,7 +109,7 @@ const deleteAddress = async (userId, addressId) => {
         }
     }
 
-    return { message: "Address deleted successfully" };
+    return { message: "Xóa địa chỉ thành công" };
 };
 
 module.exports = {

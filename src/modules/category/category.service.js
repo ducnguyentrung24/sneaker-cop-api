@@ -49,7 +49,7 @@ const getCategories = async (query) => {
 
 const getCategoryById = async (id) => {
     const category = await Category.findByPk(id);
-    if (!category) throw new Error("Category not found");
+    if (!category) throw new Error("Không tìm thấy danh mục");
 
     return category;
 };
@@ -59,7 +59,7 @@ const createCategory = async (data) => {
     const { name, description } = data;
 
     const existingCategory = await Category.findOne({ where: { name } });
-    if (existingCategory) throw new Error("Category already exists");
+    if (existingCategory) throw new Error("Tên danh mục đã tồn tại");
 
     return await Category.create({ name, description });
 };
@@ -68,10 +68,10 @@ const updateCategory = async (id, data) => {
     const { name, description } = data;
 
     const category = await Category.findByPk(id);
-    if (!category) throw new Error("Category not found");
+    if (!category) throw new Error("Không tìm thấy danh mục");
 
     const exitstingCategory = await Category.findOne({ where: { name } });
-    if (exitstingCategory && exitstingCategory.id !== category.id) throw new Error("Category name already exists");
+    if (exitstingCategory && exitstingCategory.id !== category.id) throw new Error("Tên danh mục đã tồn tại");
 
     await category.update({ name, description });
 
@@ -80,11 +80,11 @@ const updateCategory = async (id, data) => {
 
 const deleteCategory = async (id) => {
     const category = await Category.findByPk(id);
-    if (!category) throw new Error("Category not found");
+    if (!category) throw new Error("Không tìm thấy danh mục");
 
     await category.destroy();
 
-    return { message: "Category deleted successfully" };
+    return { message: "Xóa danh mục thành công" };
 };
 
 module.exports = {

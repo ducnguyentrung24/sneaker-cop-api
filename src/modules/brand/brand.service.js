@@ -48,7 +48,7 @@ const getBrands = async (query) => {
 
 const getBrandById = async (id) => {
     const brand = await Brand.findByPk(id);
-    if (!brand) throw new Error("Brand not found");
+    if (!brand) throw new Error("Không tìm thấy thương hiệu");
 
     return brand;
 };
@@ -58,7 +58,7 @@ const createBrand = async (data) => {
     const { name, description } = data;
 
     const existingBrand = await Brand.findOne({ where: { name } });
-    if (existingBrand) throw new Error("Brand already exists");
+    if (existingBrand) throw new Error("Tên thương hiệu đã tồn tại");
 
     return await Brand.create({ name, description });
 };
@@ -67,10 +67,10 @@ const updateBrand = async (id, data) => {
     const { name, description } = data;
 
     const brand = await Brand.findByPk(id);
-    if (!brand) throw new Error("Brand not found");
+    if (!brand) throw new Error("Không tìm thấy thương hiệu");
 
     const exitstingBrand = await Brand.findOne({ where: { name } });
-    if (exitstingBrand && exitstingBrand.id !== brand.id) throw new Error("Brand name already exists");
+    if (exitstingBrand && exitstingBrand.id !== brand.id) throw new Error("Tên thương hiệu đã tồn tại");
 
     await brand.update({ name, description });
 
@@ -79,11 +79,11 @@ const updateBrand = async (id, data) => {
 
 const deleteBrand = async (id) => {
     const brand = await Brand.findByPk(id);
-    if (!brand) throw new Error("Brand not found");
+    if (!brand) throw new Error("Không tìm thấy thương hiệu");
 
     await brand.destroy();
 
-    return { message: "Brand deleted successfully" };
+    return { message: "Xóa thương hiệu thành công" };
 };
 
 module.exports = {

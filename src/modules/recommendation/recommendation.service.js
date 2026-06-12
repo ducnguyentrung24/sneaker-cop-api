@@ -3,13 +3,10 @@ const Product = require('../product/product.model');
 
 const getRecommendations = async (userId, query) => {
     const { limit = 10 } = query;
-
     const limitNumber = Number(limit) || 10;
 
     const behaviors = await Behavior.findAll({
-        where: {
-            user_id: userId,
-        },
+        where: { user_id: userId },
         include: [
             {
                 model: Product,

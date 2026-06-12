@@ -104,15 +104,7 @@ const getReviewByOrder = async (userId, orderId) => {
             user_id: userId,
             order_id: orderId,
         },
-        attributes: [
-            'id',
-            'product_id',
-            'order_id',
-            'order_item_id',
-            'rating',
-            'comment',
-            'created_at'
-        ],
+        attributes: ['id', 'product_id', 'order_id', 'order_item_id', 'rating', 'comment', 'created_at'],
     });
 
     return review;
@@ -128,8 +120,8 @@ const createReview = async (userId, data) => {
             transaction,
         });
 
-        if (!order) throw new Error('Order not found');
-        if (order.status !== orderStatus.COMPLETED) throw new Error('Only completed orders can be reviewed');
+        if (!order) throw new Error('Không tìm thấy đơn hàng');
+        if (order.status !== orderStatus.COMPLETED) throw new Error('Chỉ có thể đánh giá đơn hàng đã hoàn thành');
 
         // Check product in order
         const item = await OrderItem.findOne({
@@ -146,7 +138,7 @@ const createReview = async (userId, data) => {
             transaction,
         });
 
-        if (!item) throw new Error('Product not found in this order');
+        if (!item) throw new Error('Không tìm thấy sản phẩm trong đơn hàng');
 
         // Check duplicate review
         const existingReview = await Review.findOne({
@@ -158,7 +150,7 @@ const createReview = async (userId, data) => {
             transaction,
         });
 
-        if (existingReview) throw new Error('You have already reviewed this product in this product');
+        if (existingReview) throw new Error('Bạn đã đánh giá sản phẩm này trong đơn hàng');
 
         // Create review
         const review = await Review.create({

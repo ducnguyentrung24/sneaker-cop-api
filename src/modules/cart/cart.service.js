@@ -94,7 +94,7 @@ const addToCart = async (userId, data) => {
         // Check variant exists
         const variant = await ProductVariant.findByPk(variant_id, { transaction });
         if (!variant) {
-            throw new Error("Product variant not found");
+            throw new Error("Khong tìm thấy biến thể sản phẩm");
         }
 
         // Get or create cart
@@ -119,7 +119,7 @@ const addToCart = async (userId, data) => {
             const newQuantity = cartItem.quantity + quantity;
 
             // Check stock
-            if (newQuantity > variant.stock) throw new Error("Quantity exceeds available stock");
+            if (newQuantity > variant.stock) throw new Error("Số lượng vượt quá tồn kho");
 
             await cartItem.update(
                 { quantity: newQuantity },
@@ -127,7 +127,7 @@ const addToCart = async (userId, data) => {
             );
         } else {
             // Check stock
-            if (quantity > variant.stock) throw new Error("Quantity exceeds available stock");
+            if (quantity > variant.stock) throw new Error("Số lượng vượt quá tồn kho");
 
             // Create new cart item
             cartItem = await CartItem.create({
@@ -150,7 +150,7 @@ const addToCart = async (userId, data) => {
 
 const updateQuantity = async (userId, cartItemId, data) => {
     const { quantity } = data;
-    if (!quantity || quantity < 1) throw new Error("Quantity must be at least 1");
+    if (!quantity || quantity < 1) throw new Error("Số lượng ít nhất phải là 1");
 
     const cartItem = await CartItem.findByPk(cartItemId, {
         include: [
@@ -164,11 +164,11 @@ const updateQuantity = async (userId, cartItemId, data) => {
         ]
     });
 
-    if (!cartItem) throw new Error("Cart item not found");
+    if (!cartItem) throw new Error("Không tìm thấy mục giỏ hàng");
     if (cartItem.Cart.user_id !== userId) throw new Error("Unauthorized");
     // Check stock
     const currentQuantity = cartItem.quantity;
-    if (quantity > currentQuantity && quantity > cartItem.variant.stock) throw new Error("Quantity exceeds available stock");
+    if (quantity > currentQuantity && quantity > cartItem.variant.stock) throw new Error("Số lượng vượt quá tồn kho");
 
     // Update quantity
     await cartItem.update({ quantity });
@@ -185,12 +185,12 @@ const deleteCartItem = async (userId, cartItemId) => {
         ]
     });
 
-    if (!cartItem) throw new Error("Cart item not found");
+    if (!cartItem) throw new Error("Không tìm thấy sản phẩm trong giỏ hàng");
     if (cartItem.Cart.user_id !== userId) throw new Error("Unauthorized");
 
     await cartItem.destroy();
 
-    return { message: "Cart item deleted successfully" };
+    return { message: "Xóa sản phẩm khỏi giỏ hàng thành công" };
 };
 
 const deleteManyCartItems = async (userId, cartItemIds) => {
@@ -211,7 +211,7 @@ const deleteManyCartItems = async (userId, cartItemIds) => {
             transaction
         });
 
-        if (!cartItems.length) throw new Error("Cart items not found");
+        if (!cartItems.length) throw new Error("Không tìm thấy sản phẩm trong giỏ hàng");
 
         for (const item of cartItems) {
             if (item.Cart.user_id !== userId) throw new Error("Unauthorized");

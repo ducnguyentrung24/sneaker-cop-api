@@ -560,17 +560,7 @@ const getAllOrders = async (query) => {
 
     const { count, rows } = await Order.findAndCountAll({
         where,
-
-        attributes: [
-            'id',
-            'order_code',
-            'receiver_name',
-            'final_price',
-            'payment_status',
-            'status',
-            'created_at',
-        ],
-
+        attributes: ['id', 'order_code', 'receiver_name', 'final_price', 'payment_status', 'status', 'created_at'],
         limit: limitNumber,
         offset,
         order: orderSort,
