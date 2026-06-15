@@ -33,6 +33,41 @@ const genrateOrderCode = () => {
     return `#ORD-${Date.now()}`;
 };
 
+const getCheckoutAddress = async (userId, data, transaction) => {
+    if (data.address_id) {
+        const address = await Address.findOne({
+            where: {
+                id: data.address_id,
+                user_id: userId,
+            },
+            transaction,
+        });
+        if (!address) throw new Error('Không tìm thấy địa chỉ');
+        
+        return address;
+    }
+
+    const {
+        receiver_name,
+        phone,
+        city,
+        ward,
+        detail_address,
+    } = data;
+
+    if (!receiver_name || !phone || !city || !ward || !detail_address) {
+        throw new Error('Vui lòng chọn địa chỉ hoặc nhập đầy đủ thông tin giao hàng');
+    }
+
+    return {
+        receiver_name,
+        phone,
+        city,
+        ward,
+        detail_address,
+    }
+};
+
 const processOrder = async ({
     userId,
     items,
@@ -46,7 +81,7 @@ const processOrder = async ({
     // Group items by variant_id and sum quantity
     const itemMap = new Map();
     for (const item of items) {
-        const variantId = item.variant.id || item.variant_id;
+        const variantId = item.variant?.id || item.variant_id;
         const quantity = Number(item.quantity || 0);
 
         if (!variantId) throw new Error('Không tìm thấy biến thể sản phẩm');
@@ -96,6 +131,8 @@ const processOrder = async ({
         detail_address: address.detail_address,
 
         payment_method: payment_method || paymentMethods.COD,
+        payment_status: paymentStatus.UNPAID,
+
         note: note || null,
 
         status: orderStatus.PENDING,
@@ -149,13 +186,15 @@ const processOrder = async ({
 
 const checkoutFromCart = async (userId, data) => {
     return await sequelize.transaction(async (transaction) => {
-        const { address_id, payment_method, note, selected_item_ids } = data;
+        const { payment_method, note, selected_item_ids } = data;
 
         if (payment_method && !Object.values(paymentMethods).includes(payment_method)) {
             throw new Error('Phương thức thanh toán không hợp lệ');
         }
 
         if (!selected_item_ids || !selected_item_ids.length) throw new Error('Không có sản phẩm nào được chọn');
+
+        const address = await getCheckoutAddress(userId, data, transaction);
 
         // Get cart
         const cart = await Cart.findOne({
@@ -176,10 +215,6 @@ const checkoutFromCart = async (userId, data) => {
         });
 
         if (!cart || cart.items.length === 0) throw new Error('Giỏ hàng trống');
-
-        // Get address
-        const address = await Address.findByPk(address_id, { transaction });
-        if (!address) throw new Error('Không tìm thấy địa chỉ');
         
         // Filter items
         const selectedItems = cart.items.filter(item =>
@@ -223,13 +258,15 @@ const checkoutFromCart = async (userId, data) => {
 
 const checkoutFromBuyNow = async (userId, data) => {
     return await sequelize.transaction(async (transaction) => {
-        const { variant_id, quantity, address_id, payment_method, note } = data;
+        const { variant_id, quantity, payment_method, note } = data;
 
         if (payment_method && !Object.values(paymentMethods).includes(payment_method)) {
             throw new Error('Không tìm thấy phương thức thanh toán');
         }
 
         if (quantity <= 0) throw new Error('Số lượng không hợp lệ');
+        
+        const address = await getCheckoutAddress(userId, data, transaction);
 
         const variant = await ProductVariant.findByPk(variant_id, {
             include: {
@@ -240,9 +277,6 @@ const checkoutFromBuyNow = async (userId, data) => {
         });
 
         if (!variant) throw new Error('Không tìm thấy biến thể sản phẩm');
-
-        const address = await Address.findByPk(address_id, { transaction });
-        if (!address) throw new Error('Không tìm thấy địa chỉ');
 
         // create order
         const order = await processOrder({
@@ -260,7 +294,7 @@ const checkoutFromBuyNow = async (userId, data) => {
 
 const checkoutFromReorder = async (userId, data) => {
     return await sequelize.transaction(async (transaction) => {
-        const { items, address_id, payment_method, note } = data;
+        const { items, payment_method, note } = data;
 
         if (payment_method && !Object.values(paymentMethods).includes(payment_method)) {
             throw new Error('Phuong thức thanh toán không hợp lệ');
@@ -268,8 +302,7 @@ const checkoutFromReorder = async (userId, data) => {
 
         if (!items || !items.length) throw new Error('Không có sản phẩm nào được chọn để đặt hàng lại');
 
-        const address = await Address.findByPk(address_id, { transaction });
-        if (!address) throw new Error('Không tìm thấy địa chỉ');
+        const address = await getCheckoutAddress(userId, data, transaction);
 
         const orderItems = [];
         for (const item of items) {

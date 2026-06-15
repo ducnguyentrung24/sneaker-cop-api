@@ -1,6 +1,35 @@
 const Joi = require('joi');
 const { paymentMethods } = require('../../constants/paymentMethod.constant');
 
+const manualAddressFields = {
+    receiver_name: Joi.string().trim().optional().messages({
+        'string.base': 'Tên người nhận phải là một chuỗi',
+    }),
+    phone: Joi.string().trim().pattern(/^[0-9]{10,15}$/).optional().messages({
+        "any.required": "Số điện thoại là bắt buộc",
+        "string.empty": "Số điện thoại không được để trống",
+        "string.pattern.base": "Số điện thoại phải là chuỗi số từ 10 đến 15 chữ số"
+    }),
+    city: Joi.string().trim().optional().messages({
+        'string.base': 'Tỉnh/Thành phố phải là một chuỗi',
+    }),
+    ward: Joi.string().trim().optional().messages({
+        'string.base': 'Phường/Xã phải là một chuỗi',
+    }),
+    detail_address: Joi.string().trim().optional().messages({
+        'string.base': 'Địa chỉ chi tiết phải là một chuỗi',
+    }),
+};
+
+const validateAddress = (value, helpers) => {
+    if (value.address_id) return value;
+    if (!value.receiver_name || !value.phone || !value.city || !value.ward || !value.detail_address) {
+        return helpers.message('Vui lòng chọn địa chỉ hoặc nhập đầy đủ thông tin giao hàng');  
+    }
+
+    return value;
+};
+
 const checkoutBuyNowSchema = Joi.object({
     variant_id: Joi.number().required().messages({
         'any.required': 'ID biến thể là bắt buộc',
@@ -11,9 +40,10 @@ const checkoutBuyNowSchema = Joi.object({
         'number.integer': 'Số lượng phải là một số nguyên',
         'number.min': 'Số lượng phải lớn hơn hoặc bằng 1',
     }),
-    address_id: Joi.number().required().messages({
-        'any.required': 'ID địa chỉ là bắt buộc',
-    }),
+
+    address_id: Joi.number().optional().allow(null),
+    ...manualAddressFields,
+
     payment_method: Joi.string()
         .valid(...Object.values(paymentMethods))
         .optional()
@@ -23,12 +53,12 @@ const checkoutBuyNowSchema = Joi.object({
     note: Joi.string().allow('').optional().messages({
         'string.base': 'Ghi chú phải là một chuỗi',
     }),
-});
+}).custom(validateAddress);
 
 const checkoutCartSchema = Joi.object({
-    address_id: Joi.number().required().messages({
-        'any.required': 'ID địa chỉ là bắt buộc',
-    }),
+    address_id: Joi.number().optional().allow(null),
+    ...manualAddressFields,
+
     selected_item_ids: Joi.array()
         .items(Joi.number().required())
         .min(1)
@@ -47,15 +77,16 @@ const checkoutCartSchema = Joi.object({
     note: Joi.string().allow('').optional().messages({
         'string.base': 'Ghi chú phải là một chuỗi',
     }),
-});
+}).custom(validateAddress);
 
 const checkoutReorderSchema = Joi.object({
     order_id: Joi.number().required().messages({
         'any.required': 'ID đơn hàng là bắt buộc',
     }),
-    address_id: Joi.number().required().messages({
-        'any.required': 'ID địa chỉ là bắt buộc',
-    }),
+
+    address_id: Joi.number().optional().allow(null),
+    ...manualAddressFields,
+
     payment_method: Joi.string()
         .valid(...Object.values(paymentMethods))
         .optional()
@@ -65,7 +96,7 @@ const checkoutReorderSchema = Joi.object({
     note: Joi.string().allow('').optional().messages({
         'string.base': 'Ghi chú phải là một chuỗi',
     }),
-});
+}).custom(validateAddress);
 
 const validate = (schema) => {
     return (req, res, next) => {
