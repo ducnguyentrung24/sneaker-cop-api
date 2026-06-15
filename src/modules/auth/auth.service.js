@@ -143,7 +143,7 @@ const forgotPassword = async (email) => {
 
                             <!-- Footer -->
                             <div style="background: #f9fafb; padding: 20px; text-align: center; font-size: 13px; color: #888;">
-                                2025 Sneaker Cop. All rights reserved.
+                                2026 Sneaker Cop. All rights reserved.
                             </div>
                         </div>
                     </div>

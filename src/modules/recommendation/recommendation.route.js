@@ -3,10 +3,10 @@ const router = express.Router();
 
 const recommendationController = require('./recommendation.controller');
 
-const { authenticate } = require("../../middleware/auth.middleware");
+const { optionalAuthenticate } = require("../../middleware/auth.middleware");
 
-router.get("/",
-    authenticate,
+router.get("/", 
+    optionalAuthenticate,
     recommendationController.getRecommendations
 );
 
