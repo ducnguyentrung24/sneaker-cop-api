@@ -624,6 +624,26 @@ const getAllOrders = async (query) => {
         orderSort = [[field, direction.toUpperCase()]];
     }
 
+    const statusCountRows = await Order.findAll({
+        attributes: [
+            'status', 
+            [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+        ],
+        group: ['status'],
+        raw: true,
+    });
+
+    const status_counts = {
+        [orderStatus.PENDING]: 0,
+        [orderStatus.PROCESSING]: 0,
+        [orderStatus.COMPLETED]: 0,
+        [orderStatus.CANCELLED]: 0,
+    };
+
+    statusCountRows.forEach(item => {
+        status_counts[item.status] = Number(item.count);
+    });
+
     const { count, rows } = await Order.findAndCountAll({
         where,
         attributes: ['id', 'order_code', 'receiver_name', 'final_price', 'payment_status', 'status', 'created_at', 'updated_at'],
@@ -647,6 +667,7 @@ const getAllOrders = async (query) => {
 
     return {
         data,
+        status_counts,
         pagination: {
             total: count,
             page: pageNumber,
