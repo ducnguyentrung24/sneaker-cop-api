@@ -34,6 +34,7 @@ const productSchema = Joi.object({
 
     variants: Joi.array().items(
         Joi.object({
+            id: Joi.number().integer().optional().allow(null),
             color: Joi.string().required().messages({
                 "any.required": "Màu sắc là bắt buộc",
             }),

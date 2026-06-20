@@ -278,88 +278,123 @@ const createProduct = async (data) => {
     });
 };
 
-const updateProduct = async (productId, data) => {
+const updateProduct = async (id, data) => {
     return await sequelize.transaction(async (transaction) => {
-        const product = await Product.findByPk(productId, { transaction });
+        const product = await Product.findByPk(id, { transaction });
         if (!product) throw new Error("Không tìm thấy sản phẩm");
 
-        const { images, variants, ...productData } = data;
+        const {
+            images = [],
+            variants = [],
+            discount_percent = 0,
+            ...productData
+        } = data;
 
-        // Check images
-        if (images && images.length > 4) throw new Error("Chỉ được phép tối đa 4 hình ảnh");
-
+        if (images.length > 4) throw new Error("Chỉ được phép tối đa 4 hình ảnh phụ");
+        
         // Check for duplicate name
         if (productData.name) {
             const existingProduct = await Product.findOne({
                 where: {
                     name: productData.name,
-                    id: { [Op.ne]: productId }
-                }
+                    id: { [Op.ne]: id }
+                },
+                transaction,
             });
 
             if (existingProduct) throw new Error("Tên sản phẩm đã tồn tại");
         }
 
-        // Calculate final price update
-        if (productData.base_price != null || productData.discount_percent != null) {
-            const base_price = productData.base_price ?? product.base_price;
-            const discount_percent = productData.discount_percent ?? product.discount_percent;
-
-            productData.final_price = calculateFinalPrice(base_price, discount_percent);
+        // Check for duplicate variants
+        const seen = new Set();
+        for (const variant of variants) {
+            const key = `${variant.color}-${variant.size}`;
+            if (seen.has(key)) throw new Error(`Trùng lặp biến thể: ${key}`);
+            seen.add(key);
         }
 
-        // Update product
-        await product.update(productData, { transaction });
+        const final_price = calculateFinalPrice(productData.base_price ?? product.base_price, discount_percent);
 
-        // Update images
-        if (images) {
-            // Delete old images
-            await ProductImage.destroy({
-                where: { product_id: productId },
-                transaction,
-            });
+        await product.update({
+                ...productData,
+                discount_percent,
+                final_price,
+            },
+            { transaction }
+        );
 
-            const imageData = images.map(url => ({
-                product_id: productId,
-                image_url: url,
-            }));
+        // Product Images
+        await ProductImage.destroy({
+            where: {product_id: id},
+            transaction,
+        });
 
-            await ProductImage.bulkCreate(imageData, { transaction });
+        if (images.length > 0) {
+            await ProductImage.bulkCreate(
+                images.map((image_url) => ({
+                    product_id: id,
+                    image_url,
+                })),
+                { transaction }
+            );
         }
 
-        // Update variants
-        if (variants) {
-            if (!Array.isArray(variants)) throw new Error("Biến thể phải là một mảng");
+        // Product Variants
+        const existingVariants = await ProductVariant.findAll({
+            where: { product_id: id },
+            transaction,
+        });
 
-            // Check for duplicate variants
-            const seen = new Set();
+        const existingVariantIds = existingVariants.map(
+            (variant) => variant.id
+        );
 
-            for (const variant of variants) {
-                const key = `${variant.color}-${variant.size}`;
-                if (seen.has(key)) throw new Error(`Trung lặp biến thể: ${key}`);
+        const requestVariantIds = variants
+            .filter((variant) => variant.id)
+            .map((variant) => Number(variant.id));
 
-                seen.add(key);
-            }
+        // Delete variants
+        const variantIdsToDelete = existingVariantIds.filter(
+            (variantId) => !requestVariantIds.includes(variantId)
+        );
 
-            // Delete old variants
+        if (variantIdsToDelete.length > 0) {
             await ProductVariant.destroy({
-                where: { product_id: productId },
+                where: {id: variantIdsToDelete},
                 transaction,
             });
-
-            const variantData = variants.map(variant => ({
-                product_id: productId,
-                color: variant.color,
-                size: variant.size,
-                stock: variant.stock,
-                price: variant.price,
-                image_url: variant.image_url,
-            }));
-
-            await ProductVariant.bulkCreate(variantData, { transaction });
         }
 
-        return product;
+        // update hoặc create
+        for (const variant of variants) {
+            if (variant.id) {
+                await ProductVariant.update({
+                        color: variant.color,
+                        size: variant.size,
+                        stock: variant.stock,
+                        price: variant.price,
+                        image_url: variant.image_url,
+                    },
+                    {
+                        where: {id: variant.id},
+                    },
+                    { transaction }
+                );
+            } else {
+                await ProductVariant.create({
+                        product_id: id,
+                        color: variant.color,
+                        size: variant.size,
+                        stock: variant.stock,
+                        price: variant.price,
+                        image_url: variant.image_url,
+                    },
+                    { transaction }
+                );
+            }
+        }
+
+        return await getProductById(id);
     });
 };
 
