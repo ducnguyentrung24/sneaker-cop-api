@@ -32,8 +32,39 @@ const login = async (data) => {
     const user = await User.findOne({ where: { email } });
     if (!user) throw new Error("Email hoặc mật khẩu không đúng");
 
+    // Check if the account is locked
+    if (user.locked_until && new Date(user.locked_until) > new Date()) {
+        const remainingMinutes = Math.ceil(
+            (new Date(user.locked_until) - new Date()) / (1000 * 60)
+        );
+
+        throw new Error(`Tài khoản này bị khóa ${remainingMinutes} phút do nhập sai mật khẩu nhiều lần.`);
+    }
+
     const isMatch = await comparePassword(password, user.password);
-    if (!isMatch) throw new Error("Email hoặc mật khẩu không đúng");
+    if (!isMatch) {
+        const failedAttempts = user.failed_login_attempts + 1;
+
+        if (failedAttempts >= 5) {
+            const lockUntil = new Date(Date.now() + 15 * 60 * 1000); // Lock for 15 minutes
+
+            await user.update({
+                failed_login_attempts: 0,
+                locked_until: lockUntil,
+            });
+
+            throw new Error("Bạn đã nhập sai quá 5 lần. Tài khoản bị khóa trong 15 phút.");
+        }
+
+        await user.update({ failed_login_attempts: failedAttempts });
+
+        throw new Error(`Email hoặc mật khẩu không đúng. Bạn còn ${5 - failedAttempts} lần thử.`);
+    }
+
+    await user.update({
+        failed_login_attempts: 0,
+        locked_until: null,
+    });
 
     const token = generateToken({
         id: user.id,
