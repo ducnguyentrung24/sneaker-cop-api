@@ -3,7 +3,7 @@ const Behavior = require('./behavior.model');
 const { behaviorTypes } = require('../../constants/behavior.constant');
 
 const caculateScore = (behavior) => {
-    return behavior.view_count + behavior.cart_count * 3 + behavior.purchase_count * 5
+    return behavior.view_count * 1 + behavior.cart_count * 5 + behavior.purchase_count * 7;
 };
 
 const trackBehavior = async (userId, productId, type) => {
