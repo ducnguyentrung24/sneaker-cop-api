@@ -7,6 +7,7 @@ const ProductVariant = require("./productVariant.model");
 const Review = require("../review/review.model");
 const Category = require("../category/category.model");
 const Brand = require("../brand/brand.model");
+const OrderItem = require("../order/orderItem.model");
 
 const behaviorService = require("../behavior/behavior.service");
 const { behaviorTypes } = require('../../constants/behavior.constant');
@@ -401,6 +402,24 @@ const updateProduct = async (id, data) => {
 const deleteProduct = async (productId) => {
     const product = await Product.findByPk(productId);
     if (!product) throw new Error("Không tìm thấy sản phẩm");
+
+    const variants = await ProductVariant.findAll({
+        where: { product_id: productId },
+        atributes: ['id'],
+    });
+
+    const variantIds = variants.map((variant) => variant.id);
+    if (variantIds.length > 0) {
+        const orderItemCount = await OrderItem.count({
+            where: {
+                product_variant_id: { 
+                    [Op.in]: variantIds 
+                },
+            },
+        });
+
+        if (orderItemCount > 0) throw new Error("Không thể xóa sản vì đã phát sinh đơn hàng. Nếu sản phẩm ngừng kinh doanh, hãy để tồn kho về 0");
+    }
 
     await product.destroy();
 

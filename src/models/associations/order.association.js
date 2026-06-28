@@ -55,7 +55,7 @@ const initOrderAssociations = () => {
     ProductVariant.hasMany(OrderItem, {
         foreignKey: 'product_variant_id',
         as: 'order_items',
-        onDelete: 'CASCADE',
+        onDelete: 'RESTRICT',
     });
 
     OrderItem.belongsTo(ProductVariant, {
