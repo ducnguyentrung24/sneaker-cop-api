@@ -405,7 +405,7 @@ const deleteProduct = async (productId) => {
 
     const variants = await ProductVariant.findAll({
         where: { product_id: productId },
-        atributes: ['id'],
+        attributes: ['id'],
     });
 
     const variantIds = variants.map((variant) => variant.id);
@@ -418,7 +418,7 @@ const deleteProduct = async (productId) => {
             },
         });
 
-        if (orderItemCount > 0) throw new Error("Không thể xóa sản vì đã phát sinh đơn hàng. Nếu sản phẩm ngừng kinh doanh, hãy để tồn kho về 0");
+        if (orderItemCount > 0) throw new Error("Không thể xóa sản phẩm vì đã phát sinh đơn hàng. Nếu sản phẩm ngừng kinh doanh, hãy để tồn kho về 0");
     }
 
     await product.destroy();
