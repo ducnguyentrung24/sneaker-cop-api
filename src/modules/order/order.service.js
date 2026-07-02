@@ -524,7 +524,7 @@ const getOrderDetail = async (userId, orderId) => {
     return formatted;
 };
 
-const cancelOrder = async (userId, orderId) => {
+const cancelOrder = async (userId, orderId, reason) => {
     return await sequelize.transaction(async (transaction) => {
         const order = await Order.findOne({
             where: {
@@ -568,7 +568,7 @@ const cancelOrder = async (userId, orderId) => {
             from_status: oldStatus,
             to_status: orderStatus.CANCELLED,
             changed_by: userId,
-            note: 'Đơn hàng bị hủy bởi khách hàng',
+            note: reason || 'Đơn hàng bị hủy bởi khách hàng',
         }, { transaction });
 
         return order;

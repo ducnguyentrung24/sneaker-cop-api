@@ -87,7 +87,11 @@ const getOrderDetail = async (req, res) => {
 
 const cancelOrder = async (req, res) => {
     try {
-        const data = await orderService.cancelOrder(req.user.id, req.params.id);
+        const data = await orderService.cancelOrder(
+            req.user.id, 
+            req.params.id,
+            req.body.reason,
+        );
 
         res.status(200).json({
             success: true,
