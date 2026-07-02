@@ -89,12 +89,12 @@ const getCart = async (userId) => {
 const addToCart = async (userId, data) => {
     return await sequelize.transaction(async (transaction) => {
         const { variant_id, quantity } = data;
-        if (!variant_id || !quantity) throw new Error("variant_id and quantity are required");
+        if (!variant_id || !quantity) throw new Error("Mã biến thể và số lượng là bắt buộc");
 
         // Check variant exists
         const variant = await ProductVariant.findByPk(variant_id, { transaction });
         if (!variant) {
-            throw new Error("Khong tìm thấy biến thể sản phẩm");
+            throw new Error("Không tìm thấy biến thể sản phẩm");
         }
 
         // Get or create cart
