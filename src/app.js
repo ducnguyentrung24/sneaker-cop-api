@@ -6,9 +6,27 @@ const morgan = require('morgan');
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.CLIENT_URL,
+  credentials: true,
+}));
 app.use(helmet());
 app.use(express.json());
+app.use((req, res, next) => {
+  req.cookies = Object.fromEntries(
+    (req.headers.cookie || "").split(";").filter(Boolean).map((part) => {
+      const separator = part.indexOf("=");
+      const name = part.slice(0, separator).trim();
+      const value = part.slice(separator + 1).trim();
+      try {
+        return [name, decodeURIComponent(value)];
+      } catch {
+        return [name, value];
+      }
+    })
+  );
+  next();
+});
 app.use(morgan('dev'));
 
 // Routes

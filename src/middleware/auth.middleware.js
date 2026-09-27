@@ -11,7 +11,7 @@ const authenticate = (req, res, next) => {
         }
 
         const token = authHeader.split(" ")[1];
-        const decoded = jwt.verifyToken(token);
+        const decoded = jwt.verifyAccessToken(token);
         req.user = decoded;
 
         if (req.user.is_active === false) {
@@ -57,7 +57,7 @@ const optionalAuthenticate = (req, res, next) => {
         if (!authHeader || !authHeader.startsWith("Bearer ")) return next();
 
         const token = authHeader.split(" ")[1];
-        const decoded = jwt.verifyToken(token);
+        const decoded = jwt.verifyAccessToken(token);
         req.user = decoded;
 
         if (req.user.is_active === false) {

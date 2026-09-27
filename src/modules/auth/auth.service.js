@@ -2,7 +2,11 @@ const User = require("../user/user.model");
 const PasswordResetOtp = require("./passwordResetOtp.model");
 
 const { hashPassword, comparePassword } = require("../../utils/hash");
-const { generateToken } = require("../../utils/jwt");
+const {
+    generateAccessToken,
+    generateRefreshToken,
+    verifyRefreshToken,
+} = require("../../utils/jwt");
 const { sendEmail } = require("../../utils/mail");
 
 const register = async (data) => {
@@ -66,11 +70,14 @@ const login = async (data) => {
         locked_until: null,
     });
 
-    const token = generateToken({
+    const tokenPayload = {
         id: user.id,
         email: user.email,
         role: user.role,
-    });
+    };
+
+    const accessToken = generateAccessToken(tokenPayload);
+    const refreshToken = generateRefreshToken(tokenPayload);
 
     return {
         user: {
@@ -79,7 +86,27 @@ const login = async (data) => {
             full_name: user.full_name,
             role: user.role,
         },
-        token,
+        accessToken,
+        refreshToken,
+    };
+};
+
+const refresh = async (token) => {
+    if (!token) throw new Error("Refresh token is required");
+
+    const decoded = verifyRefreshToken(token);
+    const user = await User.findByPk(decoded.id);
+    if (!user || user.is_active === false) throw new Error("Invalid refresh token");
+
+    const tokenPayload = {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+    };
+
+    return {
+        accessToken: generateAccessToken(tokenPayload),
+        refreshToken: generateRefreshToken(tokenPayload),
     };
 };
 
@@ -223,6 +250,7 @@ const resetPassword = async (data) => {
 module.exports = {
     register,
     login,
+    refresh,
     forgotPassword,
     resetPassword,
 };

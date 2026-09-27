@@ -1,4 +1,20 @@
 const authService = require("./auth.service");
+const jwt = require("jsonwebtoken");
+
+const refreshCookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/auth",
+};
+
+const setRefreshCookie = (res, refreshToken) => {
+    const { exp } = jwt.decode(refreshToken);
+    res.cookie("refreshToken", refreshToken, {
+        ...refreshCookieOptions,
+        expires: new Date(exp * 1000),
+    });
+};
 
 const register = async (req, res) => {
     try {
@@ -20,11 +36,15 @@ const register = async (req, res) => {
 const login = async (req, res) => {
     try {
         const result = await authService.login(req.body);
+        setRefreshCookie(res, result.refreshToken);
 
         res.status(200).json({
             success: true,
             message: "Login successful",
-            data: result,
+            data: {
+                user: result.user,
+                accessToken: result.accessToken,
+            },
         });
     } catch (error) {
         res.status(400).json({
@@ -32,6 +52,29 @@ const login = async (req, res) => {
             message: error.message,
         });
     }
+};
+
+const refresh = async (req, res) => {
+    try {
+        const result = await authService.refresh(req.cookies?.refreshToken);
+        setRefreshCookie(res, result.refreshToken);
+        res.status(200).json({
+            success: true,
+            message: "Token refreshed successfully",
+            data: { accessToken: result.accessToken },
+        });
+    } catch (error) {
+        res.clearCookie("refreshToken", refreshCookieOptions);
+        res.status(401).json({
+            success: false,
+            message: "Invalid or expired refresh token",
+        });
+    }
+};
+
+const logout = (req, res) => {
+    res.clearCookie("refreshToken", refreshCookieOptions);
+    res.status(200).json({ success: true, message: "Logout successful" });
 };
 
 const forgotPassword = async (req, res) => {
@@ -74,6 +117,8 @@ const resetPassword = async (req, res) => {
 module.exports = {
     register,
     login,
+    refresh,
+    logout,
     forgotPassword,
     resetPassword,
 };
